@@ -1,0 +1,32 @@
+CLAUDE.md
+
+# ── OS & editors ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# ── Environment & secrets ─────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── client (React + Vite) ─────────────────────────────────────
+client/node_modules/
+client/dist/
+client/.vite/
+
+# ── server (Java Spring Boot) ─────────────────────────────────
+server/target/
+server/.mvn/wrapper/maven-wrapper.jar
+*.class
+*.jar
+*.war
+
+# ── gen-ai (Python FastAPI) ───────────────────────────────────
+gen-ai/__pycache__/
+gen-ai/.venv/
+gen-ai/*.egg-info/
+*.pyc
+*.pyo
