@@ -1,35 +1,8 @@
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+@import "tailwindcss";
 
-body {
-  font-family: system-ui, sans-serif;
-  background: #f9f7f4;
-  color: #1a1a1a;
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+@custom-variant dark (&:where(.dark, .dark *));
 
-.hero {
-  text-align: center;
-}
-
-.hero h1 {
-  font-size: 3rem;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-}
-
-.hero h1 span {
-  color: #2e7d32;
-}
-
-.hero p {
-  margin-top: 0.75rem;
-  font-size: 1.1rem;
-  color: #666;
+@utility dot-grid {
+  background-image: radial-gradient(circle, rgb(34 197 94 / 0.1) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
