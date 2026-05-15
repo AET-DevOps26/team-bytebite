@@ -5,6 +5,8 @@ import { AlertBanner } from './AlertBanner'
 
 type Status = 'idle' | 'loading' | 'success' | 'error'
 
+type Ingredient = { name: string; quantity: string; unit: string }
+
 const CHIPS = [
   { emoji: '🍝', label: 'Spaghetti Carbonara' },
   { emoji: '🍛', label: 'Chicken Curry' },
@@ -24,7 +26,7 @@ export function RecipeCard() {
   const [input, setInput] = useState('')
   const [validationError, setValidationError] = useState('')
   const [status, setStatus] = useState<Status>('idle')
-  const [ingredients, setIngredients] = useState<string[]>([])
+  const [ingredients, setIngredients] = useState<Ingredient[]>([])
   const [placeholderIdx, setPlaceholderIdx] = useState(0)
 
   useEffect(() => {
@@ -61,7 +63,7 @@ export function RecipeCard() {
         body: JSON.stringify({ dish: trimmed }),
       })
       if (!response.ok) throw new Error('Request failed')
-      const data = await response.json() as { dish: string; ingredients: string[] }
+      const data = await response.json() as { dish: string; ingredients: Ingredient[] }
       setIngredients(data.ingredients)
       setStatus('success')
     } catch {
@@ -184,7 +186,7 @@ export function RecipeCard() {
                     transition={{ delay: i * 0.04, duration: 0.2 }}
                     className="px-3 py-1.5 rounded-full text-xs font-medium bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/60 text-green-800 dark:text-green-300"
                   >
-                    {item}
+                    {item.quantity !== 'N/A' ? `${item.quantity} ${item.unit} ` : ''}{item.name}
                   </motion.span>
                 ))}
               </div>
