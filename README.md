@@ -56,4 +56,47 @@ The AI generation service. Receives a dish name from the server and returns a sh
 
 ## Getting Started
 
-Each service has its own setup instructions in its respective directory's README.
+Each service has its own detailed setup instructions in its respective directory's README. A short summary also follows here.
+
+### Local Development
+
+Requires Java 21, Node 22, and Python 3.12. Each service runs in its own terminal.
+
+**1. Gen-AI** (port 8000) — create `gen-ai/.env` with `OPENAI_API_KEY=sk-...` first
+```bash
+cd gen-ai
+python -m venv .venv
+.venv/Scripts/Activate.ps1   # Windows
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
+
+**2. Server** (port 8080)
+```bash
+cd server
+./mvnw spring-boot:run
+```
+
+**3. Client** (port 5173)
+```bash
+cd client
+npm install
+npm run dev
+```
+
+Open http://localhost:5173
+
+---
+
+### Docker
+
+Requires Docker Desktop running.
+
+```powershell
+$env:OPENAI_API_KEY="sk-..."
+docker compose up --build
+```
+
+Open http://localhost:8081
+
+Drop `--build` on subsequent starts if nothing has changed. To stop: `docker compose down`.
