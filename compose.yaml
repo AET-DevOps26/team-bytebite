@@ -1,4 +1,13 @@
 services:
+  gen-ai:
+    build:
+      context: ./gen-ai
+    container_name: bytebite-gen-ai
+    ports:
+      - "8000:8000"
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+
   server:
     build:
       context: ./server
@@ -6,7 +15,9 @@ services:
     ports:
       - "8080:8080"
     environment:
-      GENAI_BASE_URL: http://....
+      GENAI_BASE_URL: http://gen-ai:8000
+    depends_on:
+      - gen-ai
 
   client:
     build:
