@@ -4,6 +4,8 @@ name: Build and Push Images
 # and pushes it to the GitHub Container Registry (ghcr.io).
 on:
   push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
