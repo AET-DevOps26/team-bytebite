@@ -1,0 +1,44 @@
+# Namespace to deploy into. Created automatically by Helm (--create-namespace).
+namespace: team-bytebite
+
+client:
+  image:
+    repository: ghcr.io/aet-devops26/team-bytebite/client
+    tag: latest
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+  replicaCount: 1
+
+server:
+  image:
+    repository: ghcr.io/aet-devops26/team-bytebite/server
+    tag: latest
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+  replicaCount: 1
+
+genai:
+  image:
+    repository: ghcr.io/aet-devops26/team-bytebite/gen-ai
+    tag: latest
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+  replicaCount: 1
+  openaiApiKey: ""
+
+ingress:
+  enabled: true
+  className: "nginx"
+  host: "team-bytebite.stud.k8s.aet.cit.tum.de"
+  tls: true
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
