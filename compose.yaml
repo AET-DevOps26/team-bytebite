@@ -1,5 +1,7 @@
 services:
   gen-ai:
+    # `up --build` builds this locally; on the VM `pull` fetches it from GHCR.
+    image: ${REGISTRY:-ghcr.io/aet-devops26/team-bytebite}/gen-ai:${IMAGE_TAG:-latest}
     build:
       context: ./gen-ai
     container_name: bytebite-gen-ai
@@ -9,6 +11,7 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
 
   server:
+    image: ${REGISTRY:-ghcr.io/aet-devops26/team-bytebite}/server:${IMAGE_TAG:-latest}
     build:
       context: ./server
     container_name: bytebite-server
@@ -20,6 +23,7 @@ services:
       - gen-ai
 
   client:
+    image: ${REGISTRY:-ghcr.io/aet-devops26/team-bytebite}/client:${IMAGE_TAG:-latest}
     build:
       context: ./client
     container_name: bytebite-client
