@@ -6,6 +6,8 @@ on:
   workflow_run:
     workflows: ["Test, Build and Push Images"]
     types: [completed]
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       image_tag:
