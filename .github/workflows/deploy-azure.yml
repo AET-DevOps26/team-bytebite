@@ -4,7 +4,7 @@ name: Deploy to VM
 # Runs automatically after a successful build of main, and on demand.
 on:
   workflow_run:
-    workflows: ["Build and Push Images"]
+    workflows: ["Test, Build and Push Images"]
     types: [completed]
   workflow_dispatch:
     inputs:

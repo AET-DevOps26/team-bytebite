@@ -1,7 +1,6 @@
-name: Build and Push Images
+name: Test, Build and Push Images
 
-# Runs the Java test suite, then builds a Docker image for every service
-# and pushes it to the GitHub Container Registry (ghcr.io).
+# Runs tests and builds images on every branch. Only pushes to the registry on main.
 on:
   push:
     branches:
@@ -69,7 +68,7 @@ jobs:
         with:
           context: ./${{ matrix.service }}
           file: ./${{ matrix.service }}/Dockerfile
-          push: true
+          push: ${{ github.ref == 'refs/heads/main' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
