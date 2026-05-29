@@ -31,10 +31,27 @@ You are a specialized Grocery List Agent. Your sole task is to convert recipe te
 - 1 pound (lb) ≈ 450 g
 - Use decimal points instead of fractions (e.g., 0.5 instead of 1/2).
 
+## Categorization
+Assign each ingredient a grocery store aisle category. Use one of the following:
+- Produce
+- Dairy & Eggs
+- Meat & Seafood
+- Bakery & Bread
+- Baking Needs
+- Canned & Jarred Goods
+- Dry Goods & Pasta
+- Condiments & Sauces
+- Spices & Herbs
+- Frozen Foods
+- Beverages
+- Snacks
+- International Foods
+- Other
+
 ## Constraints
-- Return ONLY valid JSON. 
+- Return ONLY valid JSON.
 - Do not use markdown code blocks (```json).
-- Format: {"ingredients": [{"name": "string", "quantity": "string", "unit": "string"}]}
+- Format: {"ingredients": [{"name": "string", "quantity": "string", "unit": "string", "category": "string"}]}
 
 ## Input Data
 [User Input Follows]
@@ -46,6 +63,7 @@ class Ingredient(BaseModel):
     name: str
     quantity: str
     unit: str
+    category: str
 
 
 class GenerateRequest(BaseModel):
@@ -62,7 +80,7 @@ def health():
     return {"status": "ok"}
 
 
-@app.post("/generate", response_model=GenerateResponse)
+@app.post("/api/ai/parse", response_model=GenerateResponse)
 def generate(request: GenerateRequest):
     try:
         response = client.chat.completions.create(
