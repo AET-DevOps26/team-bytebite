@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bytebite-client
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.client.replicaCount }}
+  selector:
+    matchLabels:
+      app: bytebite-client-selector
+  template:
+    metadata:
+      labels:
+        app: bytebite-client-selector
+    spec:
+      containers:
+        - name: client
+          image: "{{ .Values.client.image.repository }}:{{ .Values.client.image.tag }}"
+          imagePullPolicy: {{ .Values.client.image.pullPolicy }}
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+          ports:
+            - containerPort: {{ .Values.client.service.targetPort }}
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: client-nginx-config

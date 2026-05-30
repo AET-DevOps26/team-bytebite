@@ -5,7 +5,7 @@ import { AlertBanner } from './AlertBanner'
 
 type Status = 'idle' | 'loading' | 'success' | 'error'
 
-type Ingredient = { name: string; quantity: string; unit: string }
+type Ingredient = { name: string; quantity: string; unit: string; category: string }
 
 const CHIPS = [
   { emoji: '🍝', label: 'Spaghetti Carbonara' },
@@ -57,7 +57,7 @@ export function RecipeCard() {
     setStatus('loading')
     setIngredients([])
     try {
-      const response = await fetch('/generate', {
+      const response = await fetch('/api/recipes/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dish: trimmed }),
@@ -177,17 +177,32 @@ export function RecipeCard() {
               Shopping list
             </h2>
             {ingredients.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {ingredients.map((item, i) => (
-                  <motion.span
-                    key={i}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: i * 0.04, duration: 0.2 }}
-                    className="px-3 py-1.5 rounded-full text-xs font-medium bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/60 text-green-800 dark:text-green-300"
-                  >
-                    {item.quantity !== 'N/A' ? `${item.quantity} ${item.unit} ` : ''}{item.name}
-                  </motion.span>
+              <div className="space-y-4">
+                {Object.entries(
+                  ingredients.reduce<Record<string, Ingredient[]>>((groups, item) => {
+                    const key = item.category || 'Other'
+                    ;(groups[key] ??= []).push(item)
+                    return groups
+                  }, {})
+                ).map(([category, items], groupIdx) => (
+                  <div key={category}>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
+                      {category}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {items.map((item, i) => (
+                        <motion.span
+                          key={i}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: (groupIdx * 4 + i) * 0.04, duration: 0.2 }}
+                          className="px-3 py-1.5 rounded-full text-xs font-medium bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/60 text-green-800 dark:text-green-300"
+                        >
+                          {item.quantity !== 'N/A' ? `${item.quantity} ${item.unit} ` : ''}{item.name}
+                        </motion.span>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : (

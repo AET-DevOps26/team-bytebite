@@ -1,0 +1,64 @@
+name: Deploy to Kubernetes
+
+# Deploys the app to the AET cluster via Helm.
+# Runs automatically after a successful build of main, and on demand.
+on:
+  workflow_run:
+    workflows: ["Test, Build and Push Images"]
+    types: [completed]
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to deploy (latest or a commit SHA)"
+        default: latest
+
+concurrency:
+  group: deploy-k8s
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to AET Cluster
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' ||
+          (github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.head_branch == 'main') }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve image tag
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "image_tag=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "image_tag=${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.4
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install bytebite ./helm/bytebite \
+            --namespace team-bytebite \
+            --set client.image.tag=${{ steps.vars.outputs.image_tag }} \
+            --set server.image.tag=${{ steps.vars.outputs.image_tag }} \
+            --set genai.image.tag=${{ steps.vars.outputs.image_tag }} \
+            --set genai.openaiApiKey="${{ secrets.OPENAI_API_KEY }}" \
+            --atomic \
+            --timeout 5m

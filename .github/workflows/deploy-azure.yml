@@ -1,0 +1,89 @@
+name: Deploy to VM
+
+# Ships the images built by "Build and Push Images" onto the Azure VM over SSH.
+# Runs automatically after a successful build of main, and on demand.
+on:
+  workflow_run:
+    workflows: ["Test, Build and Push Images"]
+    types: [completed]
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to deploy (latest or a commit SHA)"
+        default: latest
+
+# Never let two deploys touch the VM at the same time.
+concurrency:
+  group: deploy-vm
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Azure VM
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    environment:
+      name: Azure
+      url: http://${{ vars.AZURE_PUBLIC_IP }}:8081
+    # Manual runs always proceed; automatic runs only for a green build of main.
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' ||
+          (github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.head_branch == 'main') }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Resolve deployment values
+        id: vars
+        run: |
+          # ghcr.io requires a fully lowercase repository path.
+          echo "registry=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "image_tag=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "image_tag=${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Copy Docker Compose File From Repo to VM Host
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ vars.AZURE_PUBLIC_IP }}
+          username: ${{ vars.AZURE_USER }}
+          key: ${{ secrets.AZURE_PRIVATE_KEY }}
+          source: "compose.yaml"
+          target: /home/${{ vars.AZURE_USER }}
+
+      - name: SSH to VM and Create .env
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ vars.AZURE_PUBLIC_IP }}
+          username: ${{ vars.AZURE_USER }}
+          key: ${{ secrets.AZURE_PRIVATE_KEY }}
+          script_stop: true
+          script: |
+            rm -f .env
+            touch .env
+            echo "REGISTRY=${{ steps.vars.outputs.registry }}" >> .env
+            echo "IMAGE_TAG=${{ steps.vars.outputs.image_tag }}" >> .env
+            echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
+
+      - name: SSH to VM and Execute Docker Compose Up
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ vars.AZURE_PUBLIC_IP }}
+          username: ${{ vars.AZURE_USER }}
+          key: ${{ secrets.AZURE_PRIVATE_KEY }}
+          script_stop: true
+          script: |
+            echo "Logging into GHCR..."
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            echo "Pulling images and starting the stack..."
+            docker compose -f compose.yaml --env-file .env up --pull=always -d --remove-orphans
+            docker logout ghcr.io
+            docker image prune -f
+            docker compose -f compose.yaml ps

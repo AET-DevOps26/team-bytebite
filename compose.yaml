@@ -32,6 +32,8 @@ services:
       retries: 5
 
   gen-ai:
+    # `up --build` builds this locally; on the VM `pull` fetches it from GHCR.
+    image: ${REGISTRY:-ghcr.io/aet-devops26/team-bytebite}/gen-ai:${IMAGE_TAG:-latest}
     build:
       context: ./gen-ai
     container_name: bytebite-gen-ai
@@ -40,9 +42,10 @@ services:
     environment:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
 
+
   user-service:
     build:
-      context: ./server
+      context: ./user-service
     container_name: bytebite-user-service
     expose:
       - "8080"
@@ -57,7 +60,7 @@ services:
 
   grocery-service:
     build:
-      context: ./server
+      context: ./grocery-service
     container_name: bytebite-grocery-service
     expose:
       - "8080"
@@ -75,7 +78,7 @@ services:
 
   api-gateway:
     build:
-      context: ./server
+      context: ./api-gateway
     container_name: bytebite-api-gateway
     ports:
       - "8080:8080"
@@ -83,7 +86,6 @@ services:
       SPRING_APPLICATION_NAME: api-gateway
       USER_SERVICE_BASE_URL: http://user-service:8080
       GROCERY_SERVICE_BASE_URL: http://grocery-service:8080
-      GENAI_BASE_URL: http://gen-ai:8000
     depends_on:
       user-service:
         condition: service_started
@@ -93,6 +95,7 @@ services:
         condition: service_started
 
   client:
+    image: ${REGISTRY:-ghcr.io/aet-devops26/team-bytebite}/client:${IMAGE_TAG:-latest}
     build:
       context: ./client
     container_name: bytebite-client
