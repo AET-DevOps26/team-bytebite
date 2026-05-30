@@ -38,9 +38,12 @@ Unlike traditional apps that rely on rigid "If/Then" logic or specific formattin
 
 ```
 team-bytebite/
-├── client/       # React + Vite frontend
-├── server/       # Java Spring Boot backend API
-└── gen-ai/       # Python FastAPI service for AI-based recipe and shopping list generation
+├── client/           # React + Vite frontend
+├── api-gateway/      # Java Spring Boot public backend entrypoint
+├── user-service/     # Java Spring Boot user domain service
+├── grocery-service/  # Java Spring Boot grocery and recipe domain service
+├── gen-ai/           # Python FastAPI service for AI-based recipe and shopping list generation
+└── docker/           # Database image definitions and init schemas
 ```
 
 ## Services
@@ -48,8 +51,14 @@ team-bytebite/
 ### `client` — React / Vite
 The user-facing web application. Provides a dish name input and displays the generated shopping list. Communicates with the backend via REST.
 
-### `server` — Java Spring Boot
-The core backend API. Manages users, recipes, and shopping lists. Orchestrates requests between the client and the gen-ai service.
+### `api-gateway` — Java Spring Boot
+The public backend entrypoint. Receives frontend API requests and forwards them to the owning backend service.
+
+### `user-service` — Java Spring Boot
+Owns user-related data and connects to the user database.
+
+### `grocery-service` — Java Spring Boot
+Owns recipes, grocery lists, and grocery items. Connects to the grocery database and calls the gen-ai service when ingredient generation is needed.
 
 ### `gen-ai` — Python FastAPI
 The AI generation service. Receives a dish name from the server and returns a shopping list with all required ingredients using LLM integrations.
@@ -71,13 +80,25 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-**2. Server** (port 8080)
+**2. User Service** (port 8083)
 ```bash
-cd server
+cd user-service
+SERVER_PORT=8083 ./mvnw spring-boot:run
+```
+
+**3. Grocery Service** (port 8082)
+```bash
+cd grocery-service
+SERVER_PORT=8082 ./mvnw spring-boot:run
+```
+
+**4. API Gateway** (port 8080)
+```bash
+cd api-gateway
 ./mvnw spring-boot:run
 ```
 
-**3. Client** (port 5173)
+**5. Client** (port 5173)
 ```bash
 cd client
 npm install

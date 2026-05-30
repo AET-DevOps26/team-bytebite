@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: bytebite-server
+  name: bytebite-grocery-service
   namespace: {{ .Values.namespace }}
 spec:
-  replicas: {{ .Values.server.replicaCount }}
+  replicas: {{ .Values.groceryService.replicaCount }}
   selector:
     matchLabels:
-      app: bytebite-server-selector
+      app: bytebite-grocery-service-selector
   template:
     metadata:
       labels:
-        app: bytebite-server-selector
+        app: bytebite-grocery-service-selector
     spec:
       containers:
-        - name: server
-          image: "{{ .Values.server.image.repository }}:{{ .Values.server.image.tag }}"
-          imagePullPolicy: {{ .Values.server.image.pullPolicy }}
+        - name: grocery-service
+          image: "{{ .Values.groceryService.image.repository }}:{{ .Values.groceryService.image.tag }}"
+          imagePullPolicy: {{ .Values.groceryService.image.pullPolicy }}
           resources:
             limits:
               cpu: "500m"
@@ -25,7 +25,7 @@ spec:
               cpu: "200m"
               memory: "256Mi"
           ports:
-            - containerPort: {{ .Values.server.service.targetPort }}
+            - containerPort: {{ .Values.groceryService.service.targetPort }}
           env:
             - name: GENAI_BASE_URL
               value: "http://genai-service:{{ .Values.genai.service.port }}"

@@ -15,6 +15,9 @@ jobs:
   test:
     name: Run Java Tests
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [api-gateway, user-service, grocery-service]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,15 +30,29 @@ jobs:
           cache: maven
 
       - name: Run tests with Maven
-        run: cd server && ./mvnw -B test
+        run: cd ${{ matrix.service }} && ./mvnw -B test
 
   build:
-    name: Build ${{ matrix.service }}
+    name: Build ${{ matrix.image }}
     needs: test
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [client, server, gen-ai]
+        include:
+          - image: client
+            context: ./client
+          - image: api-gateway
+            context: ./api-gateway
+          - image: user-service
+            context: ./user-service
+          - image: grocery-service
+            context: ./grocery-service
+          - image: gen-ai
+            context: ./gen-ai
+          - image: user-db
+            context: ./docker/user-db
+          - image: grocery-db
+            context: ./docker/grocery-db
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -57,7 +74,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           # metadata-action lowercases the image name for ghcr.io automatically.
-          images: ghcr.io/${{ github.repository }}/${{ matrix.service }}
+          images: ghcr.io/${{ github.repository }}/${{ matrix.image }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=ref,event=branch
@@ -66,8 +83,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
-          context: ./${{ matrix.service }}
-          file: ./${{ matrix.service }}/Dockerfile
+          context: ${{ matrix.context }}
+          file: ${{ matrix.context }}/Dockerfile
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

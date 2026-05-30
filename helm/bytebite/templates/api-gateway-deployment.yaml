@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bytebite-api-gateway
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.apiGateway.replicaCount }}
+  selector:
+    matchLabels:
+      app: bytebite-api-gateway-selector
+  template:
+    metadata:
+      labels:
+        app: bytebite-api-gateway-selector
+    spec:
+      containers:
+        - name: api-gateway
+          image: "{{ .Values.apiGateway.image.repository }}:{{ .Values.apiGateway.image.tag }}"
+          imagePullPolicy: {{ .Values.apiGateway.image.pullPolicy }}
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+          ports:
+            - containerPort: {{ .Values.apiGateway.service.targetPort }}
+          env:
+            - name: GROCERY_SERVICE_BASE_URL
+              value: "http://grocery-service:{{ .Values.groceryService.service.port }}"
+            - name: USER_SERVICE_BASE_URL
+              value: "http://user-service:{{ .Values.userService.service.port }}"

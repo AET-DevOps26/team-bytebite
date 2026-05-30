@@ -1,5 +1,6 @@
 services:
   user-db:
+    image: ${REGISTRY:-ghcr.io/aet-devops26/team-bytebite}/user-db:${IMAGE_TAG:-latest}
     build:
       context: ./docker/user-db
     container_name: bytebite-user-db
@@ -16,6 +17,7 @@ services:
       retries: 5
 
   grocery-db:
+    image: ${REGISTRY:-ghcr.io/aet-devops26/team-bytebite}/grocery-db:${IMAGE_TAG:-latest}
     build:
       context: ./docker/grocery-db
     container_name: bytebite-grocery-db
@@ -44,6 +46,7 @@ services:
 
 
   user-service:
+    image: ${REGISTRY:-ghcr.io/aet-devops26/team-bytebite}/user-service:${IMAGE_TAG:-latest}
     build:
       context: ./user-service
     container_name: bytebite-user-service
@@ -59,6 +62,7 @@ services:
         condition: service_healthy
 
   grocery-service:
+    image: ${REGISTRY:-ghcr.io/aet-devops26/team-bytebite}/grocery-service:${IMAGE_TAG:-latest}
     build:
       context: ./grocery-service
     container_name: bytebite-grocery-service
@@ -77,6 +81,7 @@ services:
         condition: service_started
 
   api-gateway:
+    image: ${REGISTRY:-ghcr.io/aet-devops26/team-bytebite}/api-gateway:${IMAGE_TAG:-latest}
     build:
       context: ./api-gateway
     container_name: bytebite-api-gateway
@@ -90,8 +95,6 @@ services:
       user-service:
         condition: service_started
       grocery-service:
-        condition: service_started
-      gen-ai:
         condition: service_started
 
   client:
