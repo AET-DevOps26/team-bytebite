@@ -30,7 +30,7 @@ jobs:
           cache: maven
 
       - name: Run tests with Maven
-        run: cd services/${{ matrix.service }} && ./mvnw -B test
+        run: cd server/${{ matrix.service }} && ./mvnw -B test
 
   build:
     name: Build ${{ matrix.image }}
@@ -42,17 +42,17 @@ jobs:
           - image: client
             context: ./client
           - image: api-gateway
-            context: ./services/api-gateway
+            context: ./server/api-gateway
           - image: user-service
-            context: ./services/user-service
+            context: ./server/user-service
           - image: grocery-service
-            context: ./services/grocery-service
+            context: ./server/grocery-service
           - image: gen-ai
-            context: ./services/gen-ai
+            context: ./gen-ai
           - image: user-db
-            context: ./services/databases/user-db
+            context: ./databases/user-db
           - image: grocery-db
-            context: ./services/databases/grocery-db
+            context: ./databases/grocery-db
     steps:
       - name: Checkout
         uses: actions/checkout@v4

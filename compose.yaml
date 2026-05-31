@@ -2,7 +2,7 @@ services:
   user-db:
     image: ${REGISTRY:-ghcr.io/aet-devops26/team-bytebite}/user-db:${IMAGE_TAG:-latest}
     build:
-      context: ./services/databases/user-db
+      context: ./databases/user-db
     container_name: bytebite-user-db
     environment:
       POSTGRES_DB: ${USER_DB_NAME:-bytebite_user}
@@ -19,7 +19,7 @@ services:
   grocery-db:
     image: ${REGISTRY:-ghcr.io/aet-devops26/team-bytebite}/grocery-db:${IMAGE_TAG:-latest}
     build:
-      context: ./services/databases/grocery-db
+      context: ./databases/grocery-db
     container_name: bytebite-grocery-db
     environment:
       POSTGRES_DB: ${GROCERY_DB_NAME:-bytebite_grocery}
@@ -37,7 +37,7 @@ services:
     # `up --build` builds this locally; on the VM `pull` fetches it from GHCR.
     image: ${REGISTRY:-ghcr.io/aet-devops26/team-bytebite}/gen-ai:${IMAGE_TAG:-latest}
     build:
-      context: ./services/gen-ai
+      context: ./gen-ai
     container_name: bytebite-gen-ai
     ports:
       - "8000:8000"
@@ -48,7 +48,7 @@ services:
   user-service:
     image: ${REGISTRY:-ghcr.io/aet-devops26/team-bytebite}/user-service:${IMAGE_TAG:-latest}
     build:
-      context: ./services/user-service
+      context: ./server/user-service
     container_name: bytebite-user-service
     expose:
       - "8080"
@@ -64,7 +64,7 @@ services:
   grocery-service:
     image: ${REGISTRY:-ghcr.io/aet-devops26/team-bytebite}/grocery-service:${IMAGE_TAG:-latest}
     build:
-      context: ./services/grocery-service
+      context: ./server/grocery-service
     container_name: bytebite-grocery-service
     expose:
       - "8080"
@@ -83,7 +83,7 @@ services:
   api-gateway:
     image: ${REGISTRY:-ghcr.io/aet-devops26/team-bytebite}/api-gateway:${IMAGE_TAG:-latest}
     build:
-      context: ./services/api-gateway
+      context: ./server/api-gateway
     container_name: bytebite-api-gateway
     ports:
       - "8080:8080"
