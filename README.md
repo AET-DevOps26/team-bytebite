@@ -39,12 +39,12 @@ Unlike traditional apps that rely on rigid "If/Then" logic or specific formattin
 ```
 team-bytebite/
 ├── client/           # React + Vite frontend
-└── services/
-    ├── api-gateway/      # Java Spring Boot public backend entrypoint
-    ├── user-service/     # Java Spring Boot user domain service
-    ├── grocery-service/  # Java Spring Boot grocery and recipe domain service
-    ├── gen-ai/           # Python FastAPI service for AI-based recipe and shopping list generation
-    └── databases/        # Database image definitions and init schemas
+├── gen-ai/           # Python FastAPI AI generation service
+├── server/           # Java Spring Boot microservices
+│   ├── api-gateway/      # Public entrypoint — routes requests to backend services
+│   ├── user-service/     # User domain service
+│   └── grocery-service/  # Grocery and recipe domain service
+└── databases/        # Database image definitions and init schemas
 ```
 
 ## Services
@@ -72,9 +72,9 @@ Each service has its own detailed setup instructions in its respective directory
 
 Requires Java 21, Node 22, and Python 3.12. Each service runs in its own terminal.
 
-**1. Gen-AI** (port 8000) — create `services/gen-ai/.env` with `OPENAI_API_KEY=sk-...` first
+**1. Gen-AI** (port 8000) — create `gen-ai/.env` with `OPENAI_API_KEY=sk-...` first
 ```bash
-cd services/gen-ai
+cd gen-ai
 python -m venv .venv
 .venv/Scripts/Activate.ps1   # Windows
 pip install -r requirements.txt
@@ -83,19 +83,19 @@ uvicorn main:app --reload
 
 **2. User Service** (port 8083)
 ```bash
-cd services/user-service
-SERVER_PORT=8083 ./mvnw spring-boot:run
+cd server/user-service
+./mvnw spring-boot:run
 ```
 
 **3. Grocery Service** (port 8082)
 ```bash
-cd services/grocery-service
-SERVER_PORT=8082 ./mvnw spring-boot:run
+cd server/grocery-service
+./mvnw spring-boot:run
 ```
 
 **4. API Gateway** (port 8080)
 ```bash
-cd services/api-gateway
+cd server/api-gateway
 ./mvnw spring-boot:run
 ```
 
@@ -122,3 +122,33 @@ docker compose up --build
 Open http://localhost:8081
 
 Drop `--build` on subsequent starts if nothing has changed. To stop: `docker compose down`.
+
+---
+
+### Kubernetes
+
+#### Local Kubernetes Deployment
+...
+
+
+#### Kubernetes Deployment to the AET cluster
+
+Prerequisite: The `team-bytebite` namespace must exist in the cluster.
+
+Deployment is automated via GitHub Actions:
+
+- **Automatic:** every push to `main` triggers the build workflow, which triggers the deploy workflow on success.
+- **Manual:** go to Actions → *Deploy to Kubernetes* → *Run workflow* to manually start the deploy workflow.
+
+
+Alternatively, you can do manual deployment with Helm:
+(Requires `helm` and a valid kubeconfig)
+
+```bash
+helm upgrade --install bytebite ./helm/bytebite \
+  --namespace team-bytebite \
+  --set genai.openaiApiKey="sk-..." \
+  --atomic
+```
+
+The app is available at https://team-bytebite.stud.k8s.aet.cit.tum.de

@@ -62,5 +62,4 @@ jobs:
             --set groceryService.image.tag=${{ steps.vars.outputs.image_tag }} \
             --set genai.image.tag=${{ steps.vars.outputs.image_tag }} \
             --set genai.openaiApiKey="${{ secrets.OPENAI_API_KEY }}" \
-            --atomic \
-            --timeout 5m
+            --atomic
