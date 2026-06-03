@@ -1,0 +1,15 @@
+# Copy to terraform.tfvars and adjust. terraform.tfvars is gitignored.
+
+prefix         = "bytebite"
+location       = "polandcentral"
+vm_size        = "Standard_D2_v3"
+admin_username = "azureuser"
+
+# Optional: bring your own SSH public key. Leave commented out to have
+# Terraform generate a keypair (private key exposed via `ssh_private_key` output).
+# ssh_public_key = "ssh-ed25519 AAAA... you@host"
+
+tags = {
+  project   = "bytebite"
+  managedby = "terraform"
+}

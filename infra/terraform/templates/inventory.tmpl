@@ -1,0 +1,9 @@
+[bytebite]
+${public_ip}
+
+[bytebite:vars]
+ansible_user=${admin_username}
+ansible_python_interpreter=/usr/bin/python3
+%{ if key_file != "" ~}
+ansible_ssh_private_key_file=${key_file}
+%{ endif ~}
