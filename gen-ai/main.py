@@ -75,6 +75,39 @@ class GenerateResponse(BaseModel):
     ingredients: list[Ingredient]
 
 
+class MergeRequest(BaseModel):
+    recipes: list[list[Ingredient]]
+
+
+class MergeResponse(BaseModel):
+    ingredients: list[Ingredient]
+
+
+MERGE_PROMPT = """
+## Role
+You are a Grocery List Merging Agent. Your sole task is to combine multiple ingredient lists into one unified, deduplicated shopping list.
+
+## Task
+1. Merge all provided ingredient lists into a single list.
+2. Combine duplicate ingredients: if the same ingredient appears in multiple lists, sum their quantities.
+3. Apply semantic deduplication: treat ingredients that refer to the same thing as duplicates
+   (e.g. "garlic clove" and "garlic", "cherry tomatoes" and "tomatoes" should NOT be merged — use judgment).
+4. If units differ for the same ingredient, convert to a common metric unit before summing.
+5. If a quantity is "N/A" and the other is numeric, keep the numeric value.
+6. If both quantities are "N/A", keep "N/A".
+7. Preserve the category from the first occurrence of each ingredient.
+
+## Constraints
+- Return ONLY valid JSON.
+- Do not use markdown code blocks (```json).
+- Format: {"ingredients": [{"name": "string", "quantity": "string", "unit": "string", "category": "string"}]}
+
+## Input Data
+[Ingredient lists follow as JSON]
+
+"""
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -101,3 +134,31 @@ def generate(request: GenerateRequest):
         raise HTTPException(status_code=500, detail=f"Failed to parse LLM response: {e}")
 
     return GenerateResponse(dish=request.dish, ingredients=ingredients)
+
+
+@app.post("/api/ai/merge", response_model=MergeResponse)
+def merge(request: MergeRequest):
+    recipes_json = json.dumps(
+        [[ing.model_dump() for ing in recipe] for recipe in request.recipes],
+        indent=2,
+    )
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": MERGE_PROMPT},
+                {"role": "user", "content": recipes_json},
+            ],
+        )
+    except OpenAIError as e:
+        raise HTTPException(status_code=502, detail=f"OpenAI error: {e}")
+
+    try:
+        data = json.loads(response.choices[0].message.content)
+        ingredients = [Ingredient(**item) for item in data["ingredients"]]
+    except (KeyError, ValueError) as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse LLM response: {e}")
+
+    return MergeResponse(ingredients=ingredients)
