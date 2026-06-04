@@ -15,7 +15,7 @@ terraform apply  ──▶  inventory.ini + ssh_key.pem  ──▶  ansible-play
 | Role | Does |
 |------|------|
 | `docker` | Installs Docker Engine + the Compose v2 plugin from Docker's official apt repo; enables the service; adds the deploy user to the `docker` group |
-| `deploy` | Copies the repo-root `compose.yaml` and a rendered `.env` to `/opt/bytebite`, logs into GHCR, pulls images, and runs `docker compose up -d` |
+| `deploy` | Copies the repo-root compose file (`compose_file`, default `compose.deploy.yml`) and a rendered `.env` to `/opt/bytebite`, logs into GHCR, pulls images, and runs `docker compose up -d` |
 
 The CI workflow [`deploy.yml`](../../.github/workflows/deploy.yml) runs Terraform and then this same
 playbook in one job, on every green build of `main`.
@@ -62,6 +62,7 @@ Defaults live in `group_vars/bytebite.yml`; override per-run with `-e` / `-e @de
 | `image_tag` | `latest` | Or a commit SHA |
 | `registry` | `ghcr.io/aet-devops26/team-bytebite` | Matches `compose.yaml` |
 | `ghcr_username` / `ghcr_token` | `""` | GHCR login is skipped when the token is empty |
-| `app_dir` | `/opt/bytebite` | Where compose.yaml + .env land on the VM |
+| `app_dir` | `/opt/bytebite` | Where the compose file + .env land on the VM |
+| `compose_file` | `compose.deploy.yml` | Repo-root compose to deploy (current client/server/gen-ai stack; `compose.yaml` is the not-yet-built microservice split) |
 
 After a deploy, the app is at `http://<public_ip>:8081`.

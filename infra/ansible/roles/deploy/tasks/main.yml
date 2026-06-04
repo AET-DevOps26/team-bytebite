@@ -6,9 +6,9 @@
     state: directory
     mode: "0755"
 
-- name: Copy compose.yaml to the VM
+- name: Copy compose file to the VM
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../../compose.yaml"
+    src: "{{ playbook_dir }}/../../{{ compose_file }}"
     dest: "{{ app_dir }}/compose.yaml"
     mode: "0644"
 

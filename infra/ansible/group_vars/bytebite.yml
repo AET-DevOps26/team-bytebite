@@ -2,6 +2,11 @@
 
 app_dir: /opt/bytebite
 
+# Compose file (at the repo root) to deploy. compose.deploy.yml is the current,
+# pull-only stack (client/server/gen-ai); compose.yaml is the future microservice
+# split and is not yet deployable.
+compose_file: compose.deploy.yml
+
 registry: "ghcr.io/aet-devops26/team-bytebite"
 image_tag: "latest"
 
