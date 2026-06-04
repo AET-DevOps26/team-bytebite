@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bytebite-user-service
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.userService.replicaCount }}
+  selector:
+    matchLabels:
+      app: bytebite-user-service-selector
+  template:
+    metadata:
+      labels:
+        app: bytebite-user-service-selector
+    spec:
+      containers:
+        - name: user-service
+          image: "{{ .Values.userService.image.repository }}:{{ .Values.userService.image.tag }}"
+          imagePullPolicy: {{ .Values.userService.image.pullPolicy }}
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+          ports:
+            - containerPort: {{ .Values.userService.service.targetPort }}

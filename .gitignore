@@ -17,12 +17,13 @@ client/node_modules/
 client/dist/
 client/.vite/
 
-# ── server (Java Spring Boot) ─────────────────────────────────
-server/target/
-server/.mvn/wrapper/maven-wrapper.jar
+# ── server (Java microservices) ───────────────────────────────
+server/**/target/
+server/**/.mvn/wrapper/maven-wrapper.jar
 *.class
 *.jar
 *.war
+**/HELP.md
 
 # ── gen-ai (Python FastAPI) ───────────────────────────────────
 gen-ai/__pycache__/

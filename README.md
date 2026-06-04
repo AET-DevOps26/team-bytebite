@@ -38,9 +38,13 @@ Unlike traditional apps that rely on rigid "If/Then" logic or specific formattin
 
 ```
 team-bytebite/
-├── client/       # React + Vite frontend
-├── server/       # Java Spring Boot backend API
-└── gen-ai/       # Python FastAPI service for AI-based recipe and shopping list generation
+├── client/           # React + Vite frontend
+├── gen-ai/           # Python FastAPI AI generation service
+├── server/           # Java Spring Boot microservices
+│   ├── api-gateway/      # Public entrypoint — routes requests to backend services
+│   ├── user-service/     # User domain service
+│   └── grocery-service/  # Grocery and recipe domain service
+└── databases/        # Database image definitions and init schemas
 ```
 
 ## Services
@@ -48,8 +52,14 @@ team-bytebite/
 ### `client` — React / Vite
 The user-facing web application. Provides a dish name input and displays the generated shopping list. Communicates with the backend via REST.
 
-### `server` — Java Spring Boot
-The core backend API. Manages users, recipes, and shopping lists. Orchestrates requests between the client and the gen-ai service.
+### `api-gateway` — Java Spring Boot
+The public backend entrypoint. Receives frontend API requests and forwards them to the owning backend service.
+
+### `user-service` — Java Spring Boot
+Owns user-related data and connects to the user database.
+
+### `grocery-service` — Java Spring Boot
+Owns recipes, grocery lists, and grocery items. Connects to the grocery database and calls the gen-ai service when ingredient generation is needed.
 
 ### `gen-ai` — Python FastAPI
 The AI generation service. Receives a dish name from the server and returns a shopping list with all required ingredients using LLM integrations.
@@ -71,13 +81,25 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-**2. Server** (port 8080)
+**2. User Service** (port 8083)
 ```bash
-cd server
+cd server/user-service
 ./mvnw spring-boot:run
 ```
 
-**3. Client** (port 5173)
+**3. Grocery Service** (port 8082)
+```bash
+cd server/grocery-service
+./mvnw spring-boot:run
+```
+
+**4. API Gateway** (port 8080)
+```bash
+cd server/api-gateway
+./mvnw spring-boot:run
+```
+
+**5. Client** (port 5173)
 ```bash
 cd client
 npm install
@@ -100,3 +122,33 @@ docker compose up --build
 Open http://localhost:8081
 
 Drop `--build` on subsequent starts if nothing has changed. To stop: `docker compose down`.
+
+---
+
+### Kubernetes
+
+#### Local Kubernetes Deployment
+...
+
+
+#### Kubernetes Deployment to the AET cluster
+
+Prerequisite: The `team-bytebite` namespace must exist in the cluster.
+
+Deployment is automated via GitHub Actions:
+
+- **Automatic:** every push to `main` triggers the build workflow, which triggers the deploy workflow on success.
+- **Manual:** go to Actions → *Deploy to Kubernetes* → *Run workflow* to manually start the deploy workflow.
+
+
+Alternatively, you can do manual deployment with Helm:
+(Requires `helm` and a valid kubeconfig)
+
+```bash
+helm upgrade --install bytebite ./helm/bytebite \
+  --namespace team-bytebite \
+  --set genai.openaiApiKey="sk-..." \
+  --atomic
+```
+
+The app is available at https://team-bytebite.stud.k8s.aet.cit.tum.de
