@@ -28,8 +28,10 @@
   when: ghcr_token | length > 0
 
 - name: Pull images and (re)start the stack
+  # --no-build: every service has an image: in GHCR, so pull it and never touch the
+  # build: contexts (which aren't on the VM). --pull=always refreshes the images.
   ansible.builtin.command:
-    cmd: docker compose --env-file .env -f compose.yaml up -d --pull=always --remove-orphans
+    cmd: docker compose --env-file .env -f compose.yaml up -d --pull=always --no-build --remove-orphans
     chdir: "{{ app_dir }}"
   register: compose_up
   changed_when: true

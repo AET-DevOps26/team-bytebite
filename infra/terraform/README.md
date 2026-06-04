@@ -11,10 +11,10 @@ let Ansible connect. cloud-init is therefore minimal (it just ensures Python 3 i
 ## What it creates
 
 - Resource group, virtual network + subnet
-- Network security group with inbound rules for `22` (SSH), `8081` (client), `8080` (api-gateway),
-  `8000` (gen-ai) — matching the ports `compose.yaml` publishes
+- Network security group with inbound rules for `22` (SSH), `8081` (client), `8080` (api-gateway)
+  — matching the ports `compose.yaml` publishes (gen-ai and the DBs are internal)
 - Static public IP, network interface
-- Ubuntu 22.04 LTS VM (`Standard_B2s` by default)
+- Ubuntu 22.04 LTS VM (`Standard_D2_v3` by default)
 - An SSH keypair (generated unless you supply `ssh_public_key`)
 - **For Ansible:** a static inventory and the SSH private key, written to the sibling
   `../ansible/` folder (`inventory.ini`, `ssh_key.pem`) on `apply`. Both are gitignored.
@@ -97,9 +97,9 @@ If you supplied your own `ssh_public_key`, no key file is written — add
 
 ## Notes
 
-- **Tightening ingress:** only `8081` (the client) needs to be public. You can remove the `8080` and
-  `8000` rules from `local.inbound_ports` in `main.tf` if you don't need to reach the api-gateway or
-  gen-ai service directly.
+- **Tightening ingress:** only `8081` (the client) strictly needs to be public. You can remove the
+  `8080` (api-gateway) rule from `local.inbound_ports` in `main.tf` if you don't need to reach the
+  gateway directly (the client proxies `/api/` to it over the internal Compose network).
 - **SSH in manually:**
   ```sh
   terraform output -raw ssh_private_key > id_bytebite && chmod 600 id_bytebite
