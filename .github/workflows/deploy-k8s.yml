@@ -57,8 +57,9 @@ jobs:
           helm upgrade --install bytebite ./helm/bytebite \
             --namespace team-bytebite \
             --set client.image.tag=${{ steps.vars.outputs.image_tag }} \
-            --set server.image.tag=${{ steps.vars.outputs.image_tag }} \
+            --set apiGateway.image.tag=${{ steps.vars.outputs.image_tag }} \
+            --set userService.image.tag=${{ steps.vars.outputs.image_tag }} \
+            --set groceryService.image.tag=${{ steps.vars.outputs.image_tag }} \
             --set genai.image.tag=${{ steps.vars.outputs.image_tag }} \
             --set genai.openaiApiKey="${{ secrets.OPENAI_API_KEY }}" \
-            --atomic \
-            --timeout 5m
+            --atomic

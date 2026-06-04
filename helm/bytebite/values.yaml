@@ -12,9 +12,31 @@ client:
     targetPort: 80
   replicaCount: 1
 
-server:
+apiGateway:
   image:
-    repository: ghcr.io/aet-devops26/team-bytebite/server
+    repository: ghcr.io/aet-devops26/team-bytebite/api-gateway
+    tag: latest
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+  replicaCount: 1
+
+userService:
+  image:
+    repository: ghcr.io/aet-devops26/team-bytebite/user-service
+    tag: latest
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+  replicaCount: 1
+
+groceryService:
+  image:
+    repository: ghcr.io/aet-devops26/team-bytebite/grocery-service
     tag: latest
     pullPolicy: Always
   service:

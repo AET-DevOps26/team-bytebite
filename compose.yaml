@@ -1,7 +1,8 @@
 services:
   user-db:
+    image: ${REGISTRY:-ghcr.io/aet-devops26/team-bytebite}/user-db:${IMAGE_TAG:-latest}
     build:
-      context: ./docker/user-db
+      context: ./databases/user-db
     container_name: bytebite-user-db
     environment:
       POSTGRES_DB: ${USER_DB_NAME:-bytebite_user}
@@ -16,8 +17,9 @@ services:
       retries: 5
 
   grocery-db:
+    image: ${REGISTRY:-ghcr.io/aet-devops26/team-bytebite}/grocery-db:${IMAGE_TAG:-latest}
     build:
-      context: ./docker/grocery-db
+      context: ./databases/grocery-db
     container_name: bytebite-grocery-db
     environment:
       POSTGRES_DB: ${GROCERY_DB_NAME:-bytebite_grocery}
@@ -37,15 +39,16 @@ services:
     build:
       context: ./gen-ai
     container_name: bytebite-gen-ai
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     environment:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
 
 
   user-service:
+    image: ${REGISTRY:-ghcr.io/aet-devops26/team-bytebite}/user-service:${IMAGE_TAG:-latest}
     build:
-      context: ./user-service
+      context: ./server/user-service
     container_name: bytebite-user-service
     expose:
       - "8080"
@@ -59,8 +62,9 @@ services:
         condition: service_healthy
 
   grocery-service:
+    image: ${REGISTRY:-ghcr.io/aet-devops26/team-bytebite}/grocery-service:${IMAGE_TAG:-latest}
     build:
-      context: ./grocery-service
+      context: ./server/grocery-service
     container_name: bytebite-grocery-service
     expose:
       - "8080"
@@ -77,8 +81,9 @@ services:
         condition: service_started
 
   api-gateway:
+    image: ${REGISTRY:-ghcr.io/aet-devops26/team-bytebite}/api-gateway:${IMAGE_TAG:-latest}
     build:
-      context: ./api-gateway
+      context: ./server/api-gateway
     container_name: bytebite-api-gateway
     ports:
       - "8080:8080"
@@ -90,8 +95,6 @@ services:
       user-service:
         condition: service_started
       grocery-service:
-        condition: service_started
-      gen-ai:
         condition: service_started
 
   client:
