@@ -32,9 +32,17 @@ jobs:
       - name: Run tests with Maven
         run: cd server/${{ matrix.service }} && ./mvnw -B test
 
+  test-gatekeeper:
+    name: Run Java Tests  
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Success Gate
+        run: echo "All matrix sub-tests passed successfully!"
+
   build:
     name: Build ${{ matrix.image }}
-    needs: test
+    needs: test-gatekeeper
     runs-on: ubuntu-latest
     strategy:
       matrix:
