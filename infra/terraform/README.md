@@ -1,8 +1,8 @@
 # Terraform — ByteBite Azure VM
 
 Provisions the Azure VM (and its networking) that
-[`.github/workflows/deploy-azure.yml`](../../.github/workflows/deploy-azure.yml) deploys onto via
-SSH + Docker Compose. Before this, the VM was created by hand; now it is reproducible.
+[`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml) then configures with Ansible.
+Before this, the VM was created by hand; now it is reproducible.
 
 This is **infrastructure only** — it provisions a bare, reachable VM. Configuration (installing
 Docker, deploying the app) is handled by **Ansible** in the next step; Terraform only does enough to
@@ -19,8 +19,8 @@ let Ansible connect. cloud-init is therefore minimal (it just ensures Python 3 i
 - **For Ansible:** a static inventory and the SSH private key, written to the sibling
   `../ansible/` folder (`inventory.ini`, `ssh_key.pem`) on `apply`. Both are gitignored.
 
-State is stored **locally** (`terraform.tfstate`), gitignored. For a shared team setup, configure an
-`azurerm` backend in `versions.tf`.
+State is stored **remotely** in Azure Storage (`azurerm` backend in `versions.tf`:
+`teamstatebytebite` / `tfstate` container), so CI and team members share one locked state.
 
 ## Prerequisites
 
@@ -49,26 +49,33 @@ Tear down when finished:
 terraform destroy
 ```
 
-## Wire the outputs into GitHub
+## CI/CD
 
-After `apply`, set these in the repo's GitHub settings (the values the deploy workflow already
-reads). `OPENAI_API_KEY` stays a secret as before.
+[`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml) does the whole thing in one job:
+`terraform apply` provisions/updates the VM, then Ansible deploys onto it. `apply` is idempotent, so
+when the infra is unchanged it's a no-op and only the Ansible deploy does work. It runs after a green
+image build of `main`, and on demand (`workflow_dispatch`).
 
-| Terraform output | GitHub setting | Type |
-|---|---|---|
-| `public_ip` | `AZURE_PUBLIC_IP` | Variable |
-| `admin_username` | `AZURE_USER` | Variable |
-| `ssh_private_key` | `AZURE_PRIVATE_KEY` | Secret |
+Because both steps run on the same runner, Terraform's generated inventory + SSH key flow straight to
+Ansible — nothing is copied into repo settings. Just **two GitHub secrets**:
 
-Get the values:
+| Secret | What |
+|---|---|
+| `AZURE_CREDENTIALS` | Service-principal JSON for `azure/login` (and the Terraform backend) |
+| `OPENAI_API_KEY` | Passed through to the `gen-ai` service |
+
+Create the service principal once (Contributor lets it manage resources **and** read the state
+storage account's keys):
 
 ```sh
-terraform output public_ip
-terraform output admin_username
-terraform output -raw ssh_private_key    # sensitive
+az ad sp create-for-rbac \
+  --name bytebite-cicd \
+  --role Contributor \
+  --scopes /subscriptions/<SUBSCRIPTION_ID> \
+  --sdk-auth
 ```
 
-Then trigger `deploy-azure.yml` (workflow_dispatch) and open `http://<public_ip>:8081`.
+Paste the whole JSON blob it prints into the `AZURE_CREDENTIALS` repo secret. Done.
 
 ## Hand-off to Ansible
 

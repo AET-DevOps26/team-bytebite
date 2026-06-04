@@ -1,0 +1,57 @@
+---
+
+- name: Ensure the app directory exists
+  ansible.builtin.file:
+    path: "{{ app_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Copy compose.yaml to the VM
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../compose.yaml"
+    dest: "{{ app_dir }}/compose.yaml"
+    mode: "0644"
+
+- name: Render the .env file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ app_dir }}/.env"
+    mode: "0600"
+  no_log: true
+
+- name: Log into GHCR
+  ansible.builtin.command:
+    cmd: "docker login {{ registry.split('/')[0] }} -u {{ ghcr_username }} --password-stdin"
+    stdin: "{{ ghcr_token }}"
+  no_log: true
+  changed_when: false
+  when: ghcr_token | length > 0
+
+- name: Pull images and (re)start the stack
+  ansible.builtin.command:
+    cmd: docker compose --env-file .env -f compose.yaml up -d --pull=always --remove-orphans
+    chdir: "{{ app_dir }}"
+  register: compose_up
+  changed_when: true
+
+- name: Log out of GHCR
+  ansible.builtin.command:
+    cmd: "docker logout {{ registry.split('/')[0] }}"
+  changed_when: false
+  when: ghcr_token | length > 0
+
+- name: Prune dangling images
+  ansible.builtin.command: docker image prune -f
+  register: prune
+  changed_when: "'Total reclaimed space: 0B' not in prune.stdout"
+
+- name: Show running services
+  ansible.builtin.command:
+    cmd: docker compose -f compose.yaml ps
+    chdir: "{{ app_dir }}"
+  register: compose_ps
+  changed_when: false
+
+- name: Report stack status
+  ansible.builtin.debug:
+    var: compose_ps.stdout_lines

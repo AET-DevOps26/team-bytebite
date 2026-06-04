@@ -1,0 +1,9 @@
+---
+
+app_dir: /opt/bytebite
+
+registry: "ghcr.io/aet-devops26/team-bytebite"
+image_tag: "latest"
+
+ghcr_username: ""
+ghcr_token: ""

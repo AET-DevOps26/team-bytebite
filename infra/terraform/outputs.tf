@@ -1,10 +1,10 @@
 output "public_ip" {
-  description = "Public IP of the VM. Set this as the AZURE_PUBLIC_IP GitHub variable."
+  description = "Public IP of the VM. The app is served at http://<public_ip>:8081."
   value       = azurerm_public_ip.main.ip_address
 }
 
 output "admin_username" {
-  description = "SSH/admin username. Set this as the AZURE_USER GitHub variable."
+  description = "SSH/admin username on the VM."
   value       = var.admin_username
 }
 
@@ -16,7 +16,7 @@ output "ansible_inventory_path" {
 output "ssh_private_key" {
   description = <<-EOT
     PEM private key for SSH, when Terraform generated the keypair (ssh_public_key was empty).
-    Set this as the AZURE_PRIVATE_KEY GitHub secret. Retrieve with:
+    CI uses the copy apply writes to ../ansible/ssh_key.pem; for a manual SSH, retrieve with:
       terraform output -raw ssh_private_key
     Empty if you supplied your own ssh_public_key.
   EOT
