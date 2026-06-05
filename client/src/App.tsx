@@ -5,6 +5,7 @@ import { Sidebar, LogoMark } from './components/Sidebar'
 import { HeroSection } from './components/HeroSection'
 import { RecipeCard } from './components/RecipeCard'
 import { FeatureCards } from './components/FeatureCards'
+import { AuthCard, type AuthPayload, type AuthUser } from './components/AuthCard'
 
 function getInitialDark(): boolean {
   const stored = localStorage.getItem('bytebite-dark')
@@ -15,15 +16,59 @@ function getInitialDark(): boolean {
 function App() {
   const [darkMode, setDarkMode] = useState(getInitialDark)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [token, setToken] = useState(() => localStorage.getItem('bytebite-token') ?? '')
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    const stored = localStorage.getItem('bytebite-user')
+    return stored ? JSON.parse(stored) as AuthUser : null
+  })
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode)
     localStorage.setItem('bytebite-dark', String(darkMode))
   }, [darkMode])
 
+  useEffect(() => {
+    if (!token) return
+    fetch('/api/users/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(response => {
+        if (!response.ok) throw new Error('Session expired')
+        return response.json() as Promise<AuthPayload>
+      })
+      .then(payload => {
+        setToken(payload.token)
+        setUser(payload.user)
+        localStorage.setItem('bytebite-token', payload.token)
+        localStorage.setItem('bytebite-user', JSON.stringify(payload.user))
+      })
+      .catch(() => {
+        localStorage.removeItem('bytebite-token')
+        localStorage.removeItem('bytebite-user')
+        setToken('')
+        setUser(null)
+      })
+  }, [])
+
   const toggleDark = () => setDarkMode(d => !d)
   const openSidebar = () => setSidebarOpen(true)
   const closeSidebar = () => setSidebarOpen(false)
+  const handleAuthenticated = (payload: AuthPayload) => {
+    setToken(payload.token)
+    setUser(payload.user)
+    localStorage.setItem('bytebite-token', payload.token)
+    localStorage.setItem('bytebite-user', JSON.stringify(payload.user))
+  }
+  const handleLogout = () => {
+    localStorage.removeItem('bytebite-token')
+    localStorage.removeItem('bytebite-user')
+    setToken('')
+    setUser(null)
+  }
+
+  if (!token || !user) {
+    return <AuthCard onAuthenticated={handleAuthenticated} />
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f7f8f4] dark:bg-[#0c1410] dot-grid">
@@ -32,6 +77,8 @@ function App() {
         onToggleDark={toggleDark}
         isOpen={sidebarOpen}
         onClose={closeSidebar}
+        user={user}
+        onLogout={handleLogout}
       />
 
       {/* Mobile backdrop */}
@@ -64,7 +111,7 @@ function App() {
         {/* Page content */}
         <div className="max-w-2xl mx-auto px-6 py-16">
           <HeroSection />
-          <RecipeCard />
+          <RecipeCard token={token} />
           <FeatureCards />
           <p className="mt-16 text-center text-xs text-gray-400 dark:text-gray-600">
             ByteBite · AI-powered grocery assistant

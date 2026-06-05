@@ -57,6 +57,8 @@ services:
       # Override the local-dev port (8083) so the container listens on 8080,
       # matching `expose` and the api-gateway's USER_SERVICE_BASE_URL.
       SERVER_PORT: "8080"
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-86400}
       SPRING_DATASOURCE_URL: jdbc:postgresql://user-db:5432/${USER_DB_NAME:-bytebite_user}
       SPRING_DATASOURCE_USERNAME: ${USER_DB_USER:-bytebite_user}
       SPRING_DATASOURCE_PASSWORD: ${USER_DB_PASSWORD:-bytebite_user_password}
@@ -95,6 +97,7 @@ services:
       - "8080:8080"
     environment:
       SPRING_APPLICATION_NAME: api-gateway
+      JWT_SECRET: ${JWT_SECRET}
       USER_SERVICE_BASE_URL: http://user-service:8080
       GROCERY_SERVICE_BASE_URL: http://grocery-service:8080
     depends_on:
