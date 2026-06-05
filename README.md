@@ -117,6 +117,7 @@ Requires Docker Desktop running.
 ```powershell
 $env:OPENAI_API_KEY="sk-..."
 docker compose up --build
+docker compose down  # To take down later
 ```
 
 Open http://localhost:8081
@@ -135,8 +136,10 @@ Requires a local Kubernetes cluster running via Docker Desktop.
 kubectl config use-context docker-desktop
 kubectl create namespace team-bytebite
 helm upgrade --install bytebite ./helm/bytebite -f ./helm/bytebite/values-local.yaml --namespace team-bytebite --set genai.openaiApiKey="sk-..." --atomic
+helm uninstall bytebite --namespace team-bytebite  # To take down later
 ```
 
+Open http://localhost:80
 
 #### Kubernetes Deployment to the AET cluster
 
