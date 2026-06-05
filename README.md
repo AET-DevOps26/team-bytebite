@@ -128,7 +128,14 @@ Drop `--build` on subsequent starts if nothing has changed. To stop: `docker com
 ### Kubernetes
 
 #### Local Kubernetes Deployment
-...
+
+Requires a local Kubernetes cluster running via Docker Desktop.
+
+```powershell
+kubectl config use-context docker-desktop
+kubectl create namespace team-bytebite
+helm upgrade --install bytebite ./helm/bytebite -f ./helm/bytebite/values-local.yaml --namespace team-bytebite --set genai.openaiApiKey="sk-..." --atomic
+```
 
 
 #### Kubernetes Deployment to the AET cluster

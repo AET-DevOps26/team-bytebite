@@ -1,0 +1,6 @@
+ingress:
+  enabled: false
+
+client:
+  service:
+    type: LoadBalancer
