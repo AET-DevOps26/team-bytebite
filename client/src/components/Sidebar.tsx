@@ -1,15 +1,18 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Home, ShoppingCart, Heart,
-  Settings, User, Sun, Moon, X,
+  Settings, User, Sun, Moon, X, LogOut,
   Leaf,
 } from 'lucide-react'
+import type { AuthUser } from './AuthCard'
 
 interface SidebarProps {
   darkMode: boolean
   onToggleDark: () => void
   isOpen: boolean
   onClose: () => void
+  user: AuthUser
+  onLogout: () => void
 }
 
 const navMain = [
@@ -67,7 +70,17 @@ function NavSection({ label, items }: { label: string; items: typeof navMain }) 
   )
 }
 
-function SidebarContent({ darkMode, onToggleDark }: { darkMode: boolean; onToggleDark: () => void }) {
+function SidebarContent({
+  darkMode,
+  onToggleDark,
+  user,
+  onLogout,
+}: {
+  darkMode: boolean
+  onToggleDark: () => void
+  user: AuthUser
+  onLogout: () => void
+}) {
   return (
     <div className="flex flex-col h-full">
       {/* Logo */}
@@ -83,6 +96,10 @@ function SidebarContent({ darkMode, onToggleDark }: { darkMode: boolean; onToggl
 
       {/* Dark mode toggle */}
       <div className="px-4 py-4 border-t border-gray-200/60 dark:border-gray-800/60">
+        <div className="mb-3 px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800/60">
+          <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{user.name}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
+        </div>
         <button
           onClick={onToggleDark}
           className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/60 transition-colors"
@@ -101,17 +118,24 @@ function SidebarContent({ darkMode, onToggleDark }: { darkMode: boolean; onToggl
             </motion.div>
           </div>
         </button>
+        <button
+          onClick={onLogout}
+          className="mt-2 w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+        >
+          <LogOut size={16} />
+          Logout
+        </button>
       </div>
     </div>
   )
 }
 
-export function Sidebar({ darkMode, onToggleDark, isOpen, onClose }: SidebarProps) {
+export function Sidebar({ darkMode, onToggleDark, isOpen, onClose, user, onLogout }: SidebarProps) {
   return (
     <>
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex fixed left-0 top-0 h-full w-64 flex-col bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-800/50 z-20">
-        <SidebarContent darkMode={darkMode} onToggleDark={onToggleDark} />
+        <SidebarContent darkMode={darkMode} onToggleDark={onToggleDark} user={user} onLogout={onLogout} />
       </aside>
 
       {/* Mobile sidebar */}
@@ -130,7 +154,7 @@ export function Sidebar({ darkMode, onToggleDark, isOpen, onClose }: SidebarProp
             >
               <X size={16} />
             </button>
-            <SidebarContent darkMode={darkMode} onToggleDark={onToggleDark} />
+            <SidebarContent darkMode={darkMode} onToggleDark={onToggleDark} user={user} onLogout={onLogout} />
           </motion.aside>
         )}
       </AnimatePresence>
