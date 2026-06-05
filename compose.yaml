@@ -54,6 +54,9 @@ services:
       - "8080"
     environment:
       SPRING_APPLICATION_NAME: user-service
+      # Override the local-dev port (8083) so the container listens on 8080,
+      # matching `expose` and the api-gateway's USER_SERVICE_BASE_URL.
+      SERVER_PORT: "8080"
       SPRING_DATASOURCE_URL: jdbc:postgresql://user-db:5432/${USER_DB_NAME:-bytebite_user}
       SPRING_DATASOURCE_USERNAME: ${USER_DB_USER:-bytebite_user}
       SPRING_DATASOURCE_PASSWORD: ${USER_DB_PASSWORD:-bytebite_user_password}
@@ -70,6 +73,9 @@ services:
       - "8080"
     environment:
       SPRING_APPLICATION_NAME: grocery-service
+      # Override the local-dev port (8082) so the container listens on 8080,
+      # matching `expose` and the api-gateway's GROCERY_SERVICE_BASE_URL.
+      SERVER_PORT: "8080"
       GENAI_BASE_URL: http://gen-ai:8000
       SPRING_DATASOURCE_URL: jdbc:postgresql://grocery-db:5432/${GROCERY_DB_NAME:-bytebite_grocery}
       SPRING_DATASOURCE_USERNAME: ${GROCERY_DB_USER:-bytebite_grocery}

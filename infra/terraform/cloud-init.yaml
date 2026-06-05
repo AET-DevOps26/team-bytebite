@@ -1,0 +1,8 @@
+#cloud-config
+# Minimal bootstrap only. All VM configuration — Docker, the app stack, etc. —
+# is handled by Ansible in the next step (see ../ansible/, inventory.ini).
+# Terraform's job is to hand Ansible a bare, reachable VM; we just make sure a
+# Python interpreter is present so Ansible can run against it.
+package_update: true
+packages:
+  - python3

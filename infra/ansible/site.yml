@@ -1,0 +1,15 @@
+---
+# Configures the bare VM Terraform provisioned and deploys the ByteBite stack.
+#   1. docker  — install Docker Engine + Compose plugin
+#   2. deploy  — push compose.yaml + .env, log into GHCR, pull images, bring the stack up
+#
+# Inventory + SSH key are written into this folder by `terraform apply`
+# (see infra/terraform/ansible.tf). Run from infra/ansible/:
+#   ansible-playbook site.yml -e @deploy-vars.yml
+- name: Provision and deploy ByteBite
+  hosts: bytebite
+  become: true
+  gather_facts: true
+  roles:
+    - role: docker
+    - role: deploy

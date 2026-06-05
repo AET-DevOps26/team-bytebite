@@ -1,0 +1,14 @@
+---
+
+app_dir: /opt/bytebite
+
+# Compose file (at the repo root) to deploy. compose.yaml is the full microservice
+# stack; every service has an image: in GHCR, so the deploy pulls it (--no-build) and
+# never needs the build: contexts on the VM.
+compose_file: compose.yaml
+
+registry: "ghcr.io/aet-devops26/team-bytebite"
+image_tag: "latest"
+
+ghcr_username: ""
+ghcr_token: ""
