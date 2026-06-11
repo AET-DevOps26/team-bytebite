@@ -1,6 +1,6 @@
 # ByteBite Helm Chart
 
-Deploys the ByteBite application (client, server, gen-ai) to Kubernetes.
+Deploys the ByteBite application (client, api-gateway, user-service, grocery-service, gen-ai) to Kubernetes.
 
 ## Prerequisites
 
@@ -29,5 +29,7 @@ helm uninstall bytebite --namespace team-bytebite
 | `ingress.tls` | Enable TLS via cert-manager | `true` |
 | `genai.openaiApiKey` | OpenAI API key for the gen-ai service | `""` |
 | `client.image.tag` | Client image tag | `latest` |
-| `server.image.tag` | Server image tag | `latest` |
+| `apiGateway.image.tag` | API gateway image tag | `latest` |
+| `userService.image.tag` | User service image tag | `latest` |
+| `groceryService.image.tag` | Grocery service image tag | `latest` |
 | `genai.image.tag` | Gen-AI image tag | `latest` |

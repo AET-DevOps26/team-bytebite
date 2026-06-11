@@ -27,11 +27,11 @@ spec:
                 name: client-service
                 port:
                   number: {{ .Values.client.service.port }}
-          - path: /generate
+          - path: /api
             pathType: Prefix
             backend:
               service:
-                name: server-service
+                name: api-gateway-service
                 port:
-                  number: {{ .Values.server.service.port }}
+                  number: {{ .Values.apiGateway.service.port }}
 {{- end }}

@@ -22,7 +22,11 @@ const PLACEHOLDERS = [
   'Vegan pasta bake…',
 ]
 
-export function RecipeCard() {
+interface RecipeCardProps {
+  token: string
+}
+
+export function RecipeCard({ token }: RecipeCardProps) {
   const [input, setInput] = useState('')
   const [validationError, setValidationError] = useState('')
   const [status, setStatus] = useState<Status>('idle')
@@ -59,7 +63,10 @@ export function RecipeCard() {
     try {
       const response = await fetch('/api/recipes/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ dish: trimmed }),
       })
       if (!response.ok) throw new Error('Request failed')
