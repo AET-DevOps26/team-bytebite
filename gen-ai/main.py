@@ -11,7 +11,7 @@ load_dotenv()
 app = FastAPI()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-SYSTEM_PROMPT = """
+BASE_SYSTEM_PROMPT = """
 ## Role
 You are a specialized Grocery List Agent. Your sole task is to convert recipe text into a structured, metric-only JSON grocery list.
 
@@ -48,15 +48,48 @@ Assign each ingredient a grocery store aisle category. Use one of the following:
 - International Foods
 - Other
 
+{dietary_section}
+
 ## Constraints
 - Return ONLY valid JSON.
 - Do not use markdown code blocks (```json).
-- Format: {"ingredients": [{"name": "string", "quantity": "string", "unit": "string", "category": "string"}]}
+- Format: {{"ingredients": [{{"name": "string", "quantity": "string", "unit": "string", "category": "string", "restricted": boolean, "alternative": "string or null"}}]}}
+- Set "restricted" to false and "alternative" to null for unrestricted ingredients.
 
 ## Input Data
 [User Input Follows]
 
 """
+
+DIETARY_RULES = {
+    "Vegan": "any animal product (meat, fish, dairy, eggs, honey, gelatin)",
+    "Vegetarian": "meat or fish (beef, pork, chicken, lamb, seafood, gelatin — but dairy and eggs are allowed)",
+    "Gluten Free": "gluten-containing ingredients (wheat flour, bread, pasta, barley, rye, soy sauce, malt)",
+    "Lactose Free": "lactose-containing dairy (milk, cream, butter, cheese, yogurt — lactose-free versions are acceptable)",
+}
+
+
+def build_system_prompt(dietary_restrictions: list[str]) -> str:
+    if not dietary_restrictions:
+        dietary_section = (
+            "## Dietary Restrictions\n"
+            "No dietary restrictions specified. Set \"restricted\" to false and \"alternative\" to null for all ingredients."
+        )
+    else:
+        rules = "\n".join(
+            f"- **{r}**: flag any ingredient that contains {DIETARY_RULES.get(r, r)}."
+            for r in dietary_restrictions
+            if r in DIETARY_RULES
+        )
+        dietary_section = (
+            f"## Dietary Restrictions\n"
+            f"The user has the following dietary restrictions: {', '.join(dietary_restrictions)}.\n\n"
+            f"{rules}\n\n"
+            f"For each flagged ingredient set \"restricted\" to true and provide a suitable "
+            f"\"alternative\" (e.g. \"oat milk\" for milk on a vegan diet). "
+            f"If no reasonable alternative exists, set \"alternative\" to null."
+        )
+    return BASE_SYSTEM_PROMPT.format(dietary_section=dietary_section)
 
 
 class Ingredient(BaseModel):
@@ -64,10 +97,13 @@ class Ingredient(BaseModel):
     quantity: str
     unit: str
     category: str
+    restricted: bool = False
+    alternative: str | None = None
 
 
 class GenerateRequest(BaseModel):
     dish: str
+    dietary_restrictions: list[str] = []
 
 
 class GenerateResponse(BaseModel):
@@ -121,12 +157,13 @@ def health():
 
 @app.post("/api/ai/parse", response_model=GenerateResponse)
 def generate(request: GenerateRequest):
+    system_prompt = build_system_prompt(request.dietary_restrictions)
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             response_format={"type": "json_object"},
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": request.dish},
             ],
         )

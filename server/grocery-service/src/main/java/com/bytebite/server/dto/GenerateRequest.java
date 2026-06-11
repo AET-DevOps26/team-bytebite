@@ -1,3 +1,5 @@
 package com.bytebite.server.dto;
 
-public record GenerateRequest(String dish) {}
+import java.util.List;
+
+public record GenerateRequest(String dish, List<String> dietaryRestrictions) {}
