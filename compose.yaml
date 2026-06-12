@@ -42,6 +42,7 @@ services:
     expose:
       - "8000"
     environment:
+      LOGOS_KEY: ${LOGOS_KEY}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
 
 

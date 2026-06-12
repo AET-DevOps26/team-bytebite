@@ -55,6 +55,7 @@ genai:
     port: 8000
     targetPort: 8000
   replicaCount: 1
+  logosKey: ""
   openaiApiKey: ""
 
 ingress:

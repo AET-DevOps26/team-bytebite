@@ -8,6 +8,15 @@ Python FastAPI AI generation service for ByteBite.
 
 ## Setup & Run
 
+Create a `.env` file first:
+
+```env
+LOGOS_KEY=...
+OPENAI_API_KEY=sk-...
+```
+
+`LOGOS_KEY` is used by default. `OPENAI_API_KEY` is only required when the OpenAI provider is selected.
+
 **macOS / Linux**
 ```bash
 python3 -m venv .venv
@@ -37,11 +46,12 @@ uvicorn main:app --reload
 | Method | Path       | Description                              |
 |--------|------------|------------------------------------------|
 | GET    | /health    | Health check                             |
-| POST   | /generate  | Generate ingredient list for a dish name |
+| POST   | /api/ai/parse | Generate ingredient list for a dish name |
+| POST   | /api/ai/merge | Merge ingredient lists |
 
-### POST /generate
+### POST /api/ai/parse
 
 Request body:
 ```json
-{ "dish": "Chicken Piccata" }
+{ "dish": "Chicken Piccata", "llm_provider": "logos" }
 ```

@@ -81,6 +81,7 @@ jobs:
       - name: Write deploy vars
         working-directory: infra/ansible
         env:
+          LOGOS_KEY: ${{ secrets.LOGOS_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -90,6 +91,7 @@ jobs:
           image_tag: "${{ steps.vars.outputs.image_tag }}"
           ghcr_username: "${{ github.actor }}"
           ghcr_token: "${GHCR_TOKEN}"
+          logos_key: "${LOGOS_KEY}"
           openai_api_key: "${OPENAI_API_KEY}"
           EOF
 

@@ -1,5 +1,7 @@
 import json
 import os
+import re
+from typing import Literal
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -13,7 +15,13 @@ app = FastAPI(
     version="0.0.1",
     description="Internal AI endpoints for parsing recipes and merging ingredient lists.",
 )
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+LOGOS_BASE_URL = "https://logos.aet.cit.tum.de/v1"
+LOGOS_MODEL = "openai/gpt-oss-120b"
+OPENAI_MODEL = "gpt-4o-mini"
+DEFAULT_LLM_PROVIDER = "logos"
+
+Provider = Literal["logos", "openai"]
 
 BASE_SYSTEM_PROMPT = """
 ## Role
@@ -108,6 +116,7 @@ class Ingredient(BaseModel):
 class GenerateRequest(BaseModel):
     dish: str
     dietary_restrictions: list[str] = []
+    llm_provider: str = DEFAULT_LLM_PROVIDER
 
 
 class GenerateResponse(BaseModel):
@@ -117,6 +126,7 @@ class GenerateResponse(BaseModel):
 
 class MergeRequest(BaseModel):
     recipes: list[list[Ingredient]]
+    llm_provider: str = DEFAULT_LLM_PROVIDER
 
 
 class MergeResponse(BaseModel):
@@ -159,23 +169,63 @@ def health():
     return {"status": "ok"}
 
 
+def get_client(provider: Provider) -> OpenAI:
+    if provider == "openai":
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not configured")
+        return OpenAI(api_key=api_key)
+
+    api_key = os.getenv("LOGOS_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="LOGOS_KEY is not configured")
+    return OpenAI(api_key=api_key, base_url=LOGOS_BASE_URL)
+
+
+def normalize_provider(provider: str | None) -> Provider:
+    return "openai" if provider == "openai" else "logos"
+
+
+def create_chat_completion(provider: Provider, messages: list[dict[str, str]]):
+    kwargs = {
+        "model": LOGOS_MODEL if provider == "logos" else OPENAI_MODEL,
+        "messages": messages,
+    }
+    if provider == "openai":
+        kwargs["response_format"] = {"type": "json_object"}
+    return get_client(provider).chat.completions.create(**kwargs)
+
+
+def parse_json_content(content: str | None) -> dict:
+    if not content:
+        raise ValueError("LLM response was empty")
+
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", content, re.DOTALL)
+        if not match:
+            raise
+        return json.loads(match.group(0))
+
+
 @app.post("/api/ai/parse", response_model=GenerateResponse)
 def generate(request: GenerateRequest):
+    provider = normalize_provider(request.llm_provider)
     system_prompt = build_system_prompt(request.dietary_restrictions)
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            response_format={"type": "json_object"},
-            messages=[
+        response = create_chat_completion(
+            provider,
+            [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": request.dish},
             ],
         )
     except OpenAIError as e:
-        raise HTTPException(status_code=502, detail=f"OpenAI error: {e}")
+        raise HTTPException(status_code=502, detail=f"{provider} error: {e}")
 
     try:
-        data = json.loads(response.choices[0].message.content)
+        data = parse_json_content(response.choices[0].message.content)
         ingredients = [Ingredient(**item) for item in data["ingredients"]]
     except (KeyError, ValueError) as e:
         raise HTTPException(status_code=500, detail=f"Failed to parse LLM response: {e}")
@@ -185,25 +235,25 @@ def generate(request: GenerateRequest):
 
 @app.post("/api/ai/merge", response_model=MergeResponse)
 def merge(request: MergeRequest):
+    provider = normalize_provider(request.llm_provider)
     recipes_json = json.dumps(
         [[ing.model_dump() for ing in recipe] for recipe in request.recipes],
         indent=2,
     )
 
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            response_format={"type": "json_object"},
-            messages=[
+        response = create_chat_completion(
+            provider,
+            [
                 {"role": "system", "content": MERGE_PROMPT},
                 {"role": "user", "content": recipes_json},
             ],
         )
     except OpenAIError as e:
-        raise HTTPException(status_code=502, detail=f"OpenAI error: {e}")
+        raise HTTPException(status_code=502, detail=f"{provider} error: {e}")
 
     try:
-        data = json.loads(response.choices[0].message.content)
+        data = parse_json_content(response.choices[0].message.content)
         ingredients = [Ingredient(**item) for item in data["ingredients"]]
     except (KeyError, ValueError) as e:
         raise HTTPException(status_code=500, detail=f"Failed to parse LLM response: {e}")

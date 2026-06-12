@@ -45,7 +45,7 @@ cd infra/ansible
 ansible -i inventory.ini bytebite -m ping
 
 # Supply secrets/runtime vars, then deploy
-cp deploy-vars.example.yml deploy-vars.yml   # edit: set openai_api_key + ghcr_username/ghcr_token
+cp deploy-vars.example.yml deploy-vars.yml   # edit: set logos_key + ghcr_username/ghcr_token
 ansible-playbook site.yml -e @deploy-vars.yml
 ```
 
@@ -58,7 +58,8 @@ Defaults live in `group_vars/bytebite.yml`; override per-run with `-e` / `-e @de
 
 | Var | Default | Notes |
 |-----|---------|-------|
-| `openai_api_key` | — (**required**) | No default on purpose; the `.env` render fails fast without it |
+| `logos_key` | — (**required for default AI generation**) | Passed through as `LOGOS_KEY` |
+| `openai_api_key` | `""` | Optional; required only when users select OpenAI in the frontend |
 | `image_tag` | `latest` | Or a commit SHA |
 | `registry` | `ghcr.io/aet-devops26/team-bytebite` | Matches `compose.yaml` |
 | `ghcr_username` / `ghcr_token` | `""` | GHCR login (required — the images are private). Login is skipped only when the token is empty |

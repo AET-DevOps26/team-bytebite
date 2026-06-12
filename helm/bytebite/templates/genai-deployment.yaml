@@ -27,6 +27,11 @@ spec:
           ports:
             - containerPort: {{ .Values.genai.service.targetPort }}
           env:
+            - name: LOGOS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: genai-secret
+                  key: logos-key
             - name: OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:
