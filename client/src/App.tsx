@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu } from 'lucide-react'
 import { Sidebar, LogoMark } from './components/Sidebar'
@@ -8,9 +8,24 @@ import { FeatureCards } from './components/FeatureCards'
 import { AuthCard, type AuthPayload, type AuthUser } from './components/AuthCard'
 import { GroceryListView } from './components/GroceryListView'
 import { RecipeListView } from './components/RecipeListView'
-import type { GroceryList } from './types'
+import type { GroceryList, ApiRecipe } from './types'
 
 type View = 'home' | 'grocery-lists' | 'recipes'
+type RecipesStatus = 'loading' | 'ready' | 'error'
+
+function apiRecipeToList(recipe: ApiRecipe): GroceryList {
+  return {
+    id: recipe.recipeId,
+    dish: recipe.name,
+    createdAt: recipe.createdAt,
+    ingredients: recipe.items.map(item => ({
+      name: item.name,
+      quantity: item.quantity,
+      unit: item.unit,
+      category: item.category,
+    })),
+  }
+}
 
 function getInitialDark(): boolean {
   const stored = localStorage.getItem('bytebite-dark')
@@ -39,6 +54,22 @@ function App() {
   const [savedLists, setSavedLists] = useState<GroceryList[]>(() =>
     user ? loadLists(user.userId) : []
   )
+  const [recipes, setRecipes] = useState<GroceryList[]>([])
+  const [recipesStatus, setRecipesStatus] = useState<RecipesStatus>('loading')
+
+  const loadRecipes = useCallback((authToken: string) => {
+    setRecipesStatus('loading')
+    fetch('/api/recipes', { headers: { Authorization: `Bearer ${authToken}` } })
+      .then(response => {
+        if (!response.ok) throw new Error('Failed to load recipes')
+        return response.json() as Promise<ApiRecipe[]>
+      })
+      .then(data => {
+        setRecipes(data.map(apiRecipeToList))
+        setRecipesStatus('ready')
+      })
+      .catch(() => setRecipesStatus('error'))
+  }, [])
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode)
@@ -60,6 +91,7 @@ function App() {
         setSavedLists(loadLists(payload.user.userId))
         localStorage.setItem('bytebite-token', payload.token)
         localStorage.setItem('bytebite-user', JSON.stringify(payload.user))
+        loadRecipes(payload.token)
       })
       .catch(() => {
         localStorage.removeItem('bytebite-token')
@@ -67,7 +99,7 @@ function App() {
         setToken('')
         setUser(null)
       })
-  }, [])
+  }, [loadRecipes])
 
   const toggleDark = () => setDarkMode(d => !d)
   const openSidebar = () => setSidebarOpen(true)
@@ -84,6 +116,7 @@ function App() {
     setSavedLists(loadLists(payload.user.userId))
     localStorage.setItem('bytebite-token', payload.token)
     localStorage.setItem('bytebite-user', JSON.stringify(payload.user))
+    loadRecipes(payload.token)
   }
 
   const handleLogout = () => {
@@ -92,16 +125,56 @@ function App() {
     setToken('')
     setUser(null)
     setSavedLists([])
+    setRecipes([])
     setView('home')
   }
 
   const handleListGenerated = (list: GroceryList) => {
     if (!user) return
+    // Grocery lists stay client-side for now; recipes are persisted server-side.
     setSavedLists(prev => {
       const next = [list, ...prev]
       saveLists(user.userId, next)
       return next
     })
+
+    fetch('/api/recipes', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        name: list.dish,
+        items: list.ingredients.map(item => ({
+          name: item.name,
+          quantity: item.quantity,
+          unit: item.unit,
+          category: item.category,
+        })),
+      }),
+    })
+      .then(response => {
+        if (!response.ok) throw new Error('Failed to save recipe')
+        return response.json() as Promise<ApiRecipe>
+      })
+      .then(saved => setRecipes(prev => [apiRecipeToList(saved), ...prev]))
+      .catch(() => {
+        // Recipe persistence failed; the grocery list is still saved locally.
+      })
+  }
+
+  const handleDeleteRecipe = (recipeId: string) => {
+    const previous = recipes
+    setRecipes(prev => prev.filter(recipe => recipe.id !== recipeId))
+    fetch(`/api/recipes/${recipeId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(response => {
+        if (!response.ok && response.status !== 404) throw new Error('Failed to delete recipe')
+      })
+      .catch(() => setRecipes(previous))
   }
 
   const handleToggleItem = (listId: string, itemIndex: number) => {
@@ -201,8 +274,10 @@ function App() {
                 transition={{ duration: 0.15 }}
               >
                 <RecipeListView
-                  lists={savedLists}
-                  onDeleteList={handleDeleteList}
+                  lists={recipes}
+                  status={recipesStatus}
+                  onRetry={() => loadRecipes(token)}
+                  onDeleteList={handleDeleteRecipe}
                 />
               </motion.div>
             ) : (

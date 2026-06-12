@@ -2,12 +2,16 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ChefHat, ChevronDown, BookOpen,
-  Check, Copy, Trash2, X,
+  Check, Copy, Trash2, X, Loader2, AlertTriangle,
 } from 'lucide-react'
 import type { GroceryList, Ingredient } from '../types'
 
+type RecipesStatus = 'loading' | 'ready' | 'error'
+
 interface RecipeListViewProps {
   lists: GroceryList[]
+  status: RecipesStatus
+  onRetry: () => void
   onDeleteList: (listId: string) => void
 }
 
@@ -20,7 +24,7 @@ function listToText(list: GroceryList) {
   return lines.join('\n')
 }
 
-export function RecipeListView({ lists, onDeleteList }: RecipeListViewProps) {
+export function RecipeListView({ lists, status, onRetry, onDeleteList }: RecipeListViewProps) {
   const [openId, setOpenId] = useState<string | null>(null)
   const [copyState, setCopyState] = useState<{ id: string; ok: boolean } | null>(null)
 
@@ -37,6 +41,45 @@ export function RecipeListView({ lists, onDeleteList }: RecipeListViewProps) {
     } catch {
       showCopyResult(list.id, false)
     }
+  }
+
+  if (status === 'loading') {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="flex flex-col items-center justify-center py-32 text-center"
+      >
+        <Loader2 size={28} className="text-[#2d6a4f] dark:text-green-400 animate-spin mb-4" />
+        <p className="text-sm text-gray-500 dark:text-gray-400">Loading your recipes…</p>
+      </motion.div>
+    )
+  }
+
+  if (status === 'error') {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        className="flex flex-col items-center justify-center py-32 text-center"
+      >
+        <div className="w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/40 flex items-center justify-center mb-5">
+          <AlertTriangle size={26} className="text-red-600 dark:text-red-400" />
+        </div>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Couldn't load recipes</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs leading-relaxed mb-5">
+          Something went wrong reaching the server. Please try again.
+        </p>
+        <button
+          onClick={onRetry}
+          className="px-5 py-2.5 rounded-full bg-gradient-to-r from-[#1b5e38] to-[#2d6a4f] text-white font-semibold text-sm shadow-lg shadow-green-900/25 hover:shadow-green-900/35 transition-shadow"
+        >
+          Try again
+        </button>
+      </motion.div>
+    )
   }
 
   if (lists.length === 0) {
