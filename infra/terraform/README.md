@@ -62,7 +62,8 @@ Ansible — nothing is copied into repo settings. Just **two GitHub secrets**:
 | Secret | What |
 |---|---|
 | `AZURE_CREDENTIALS` | Service-principal JSON for `azure/login` (and the Terraform backend) |
-| `OPENAI_API_KEY` | Passed through to the `gen-ai` service |
+| `LOGOS_KEY` | Passed through to the `gen-ai` service as the default LLM provider key |
+| `OPENAI_API_KEY` | Optional key for the frontend's OpenAI provider switch |
 
 Create the service principal once (Contributor lets it manage resources **and** read the state
 storage account's keys):

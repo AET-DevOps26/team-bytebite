@@ -56,6 +56,7 @@ public class GenerateController {
         Map<String, Object> body = new HashMap<>();
         body.put("dish", request.dish());
         body.put("dietary_restrictions", request.dietaryRestrictions() != null ? request.dietaryRestrictions() : List.of());
+        body.put("llm_provider", request.llmProvider() != null ? request.llmProvider() : "logos");
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
 
         RecipeResponseDTO response;

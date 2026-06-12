@@ -72,7 +72,7 @@ Each service has its own detailed setup instructions in its respective directory
 
 Requires Java 21, Node 22, and Python 3.12. Each service runs in its own terminal.
 
-**1. Gen-AI** (port 8000) — create `gen-ai/.env` with `OPENAI_API_KEY=sk-...` first
+**1. Gen-AI** (port 8000) — create `gen-ai/.env` with `LOGOS_KEY=...`; add `OPENAI_API_KEY=sk-...` if you want to use the OpenAI switch
 ```bash
 cd gen-ai
 python -m venv .venv
@@ -125,7 +125,8 @@ The UI includes the User Service, Grocery Service, and Gen AI Service OpenAPI de
 Requires Docker Desktop running.
 
 ```powershell
-$env:OPENAI_API_KEY="sk-..."
+$env:LOGOS_KEY="..."
+$env:OPENAI_API_KEY="sk-..."   # optional, only needed for the OpenAI switch
 docker compose up --build
 ```
 
@@ -157,6 +158,7 @@ Alternatively, you can do manual deployment with Helm:
 ```bash
 helm upgrade --install bytebite ./helm/bytebite \
   --namespace team-bytebite \
+  --set genai.logosKey="..." \
   --set genai.openaiApiKey="sk-..." \
   --atomic
 ```
