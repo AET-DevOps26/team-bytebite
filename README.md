@@ -108,6 +108,16 @@ npm run dev
 
 Open http://localhost:5173
 
+### API Documentation
+
+When the backend services are running, the API gateway exposes the aggregated Swagger UI at:
+
+```text
+http://localhost:8080/swagger-ui.html
+```
+
+The UI includes the User Service, Grocery Service, and Gen AI Service OpenAPI definitions. The raw specs are available through the gateway at `/v3/api-docs/user-service`, `/v3/api-docs/grocery-service`, and `/v3/api-docs/gen-ai`.
+
 ---
 
 ### Docker

@@ -100,10 +100,13 @@ services:
       JWT_SECRET: ${JWT_SECRET:-bytebite-local-dev-secret-change-me}
       USER_SERVICE_BASE_URL: http://user-service:8080
       GROCERY_SERVICE_BASE_URL: http://grocery-service:8080
+      GENAI_SERVICE_BASE_URL: http://gen-ai:8000
     depends_on:
       user-service:
         condition: service_started
       grocery-service:
+        condition: service_started
+      gen-ai:
         condition: service_started
 
   client:

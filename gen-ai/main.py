@@ -8,7 +8,11 @@ from pydantic import BaseModel
 
 load_dotenv()
 
-app = FastAPI()
+app = FastAPI(
+    title="ByteBite Gen AI Service API",
+    version="0.0.1",
+    description="Internal AI endpoints for parsing recipes and merging ingredient lists.",
+)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 BASE_SYSTEM_PROMPT = """

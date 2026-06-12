@@ -11,6 +11,24 @@ spring:
   cloud:
     gateway:
       routes:
+        - id: user-service-openapi
+          uri: ${USER_SERVICE_BASE_URL:http://localhost:8083}
+          predicates:
+            - Path=/v3/api-docs/user-service
+          filters:
+            - RewritePath=/v3/api-docs/user-service, /v3/api-docs
+        - id: grocery-service-openapi
+          uri: ${GROCERY_SERVICE_BASE_URL:http://localhost:8082}
+          predicates:
+            - Path=/v3/api-docs/grocery-service
+          filters:
+            - RewritePath=/v3/api-docs/grocery-service, /v3/api-docs
+        - id: gen-ai-openapi
+          uri: ${GENAI_SERVICE_BASE_URL:http://localhost:8000}
+          predicates:
+            - Path=/v3/api-docs/gen-ai
+          filters:
+            - RewritePath=/v3/api-docs/gen-ai, /openapi.json
         - id: grocery-service
           uri: ${GROCERY_SERVICE_BASE_URL:http://localhost:8082}
           predicates:
@@ -19,3 +37,14 @@ spring:
           uri: ${USER_SERVICE_BASE_URL:http://localhost:8083}
           predicates:
             - Path=/api/auth/**,/api/users/**
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: User Service
+        url: /v3/api-docs/user-service
+      - name: Grocery Service
+        url: /v3/api-docs/grocery-service
+      - name: Gen AI Service
+        url: /v3/api-docs/gen-ai
