@@ -2,6 +2,12 @@ package com.bytebite.server;
 
 import com.bytebite.server.dto.GenerateRequest;
 import com.bytebite.server.dto.RecipeResponseDTO;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -20,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
+@Tag(name = "Recipes", description = "Recipe-to-grocery-list generation")
 public class GenerateController {
 
     private final RestTemplate genAiRestTemplate;
@@ -31,6 +38,18 @@ public class GenerateController {
     @PostMapping(value = "/api/recipes/generate",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            summary = "Generate a grocery list from a dish or recipe",
+            description = "Delegates to the Gen AI service and returns categorized ingredients with dietary restriction flags.",
+            security = @SecurityRequirement(name = "bearerAuth"),
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Generated grocery list"),
+                    @ApiResponse(responseCode = "401", description = "Missing, expired, or invalid JWT", content = @Content),
+                    @ApiResponse(responseCode = "422", description = "AI service returned no ingredients", content = @Content(schema = @Schema(implementation = Map.class))),
+                    @ApiResponse(responseCode = "502", description = "AI service rejected or failed the request", content = @Content(schema = @Schema(implementation = Map.class))),
+                    @ApiResponse(responseCode = "503", description = "AI service is unreachable", content = @Content(schema = @Schema(implementation = Map.class)))
+            }
+    )
     public RecipeResponseDTO generate(@RequestBody GenerateRequest request) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
