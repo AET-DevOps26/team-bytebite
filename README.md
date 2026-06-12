@@ -72,7 +72,7 @@ Each service has its own detailed setup instructions in its respective directory
 
 Requires Java 21, Node 22, and Python 3.12. Each service runs in its own terminal.
 
-**1. Gen-AI** (port 8000) — create `gen-ai/.env` with `OPENAI_API_KEY=sk-...` first
+**1. Gen-AI** (port 8000) — create `gen-ai/.env` with `LOGOS_KEY=...`; add `OPENAI_API_KEY=sk-...` if you want to use the OpenAI switch
 ```bash
 cd gen-ai
 python -m venv .venv
@@ -107,6 +107,16 @@ npm run dev
 ```
 
 Open http://localhost:5173
+
+### API Documentation
+
+When the backend services are running, the API gateway exposes the aggregated Swagger UI at:
+
+```text
+http://localhost:8080/swagger-ui.html
+```
+
+The UI includes the User Service, Grocery Service, and Gen AI Service OpenAPI definitions. The raw specs are available through the gateway at `/v3/api-docs/user-service`, `/v3/api-docs/grocery-service`, and `/v3/api-docs/gen-ai`.
 
 ---
 

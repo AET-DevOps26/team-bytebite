@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChefHat, ShoppingCart, ArrowRight, Loader2 } from 'lucide-react'
+import { ChefHat, ShoppingCart, ArrowRight, Loader2, AlertTriangle } from 'lucide-react'
 import { AlertBanner } from './AlertBanner'
 import type { Ingredient, GroceryList } from '../types'
 
 type Status = 'idle' | 'loading' | 'success' | 'error'
+
+type Ingredient = { name: string; quantity: string; unit: string; category: string; restricted: boolean; alternative: string | null }
+
+type DietaryRestriction = 'Vegan' | 'Vegetarian' | 'Gluten Free' | 'Lactose Free'
+type LlmProvider = 'logos' | 'openai'
+
+const DIETARY_OPTIONS: DietaryRestriction[] = ['Vegan', 'Vegetarian', 'Gluten Free', 'Lactose Free']
 
 const CHIPS = [
   { emoji: '🍝', label: 'Spaghetti Carbonara' },
@@ -32,6 +39,8 @@ export function RecipeCard({ token, onListGenerated }: RecipeCardProps) {
   const [status, setStatus] = useState<Status>('idle')
   const [ingredients, setIngredients] = useState<Ingredient[]>([])
   const [placeholderIdx, setPlaceholderIdx] = useState(0)
+  const [dietaryRestrictions, setDietaryRestrictions] = useState<DietaryRestriction[]>([])
+  const [llmProvider, setLlmProvider] = useState<LlmProvider>('logos')
 
   useEffect(() => {
     if (input) return
@@ -67,7 +76,7 @@ export function RecipeCard({ token, onListGenerated }: RecipeCardProps) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ dish: trimmed }),
+        body: JSON.stringify({ dish: trimmed, dietaryRestrictions, llmProvider }),
       })
       if (!response.ok) throw new Error('Request failed')
       const data = await response.json() as { dish: string; ingredients: Ingredient[] }
@@ -134,6 +143,66 @@ export function RecipeCard({ token, onListGenerated }: RecipeCardProps) {
               {label}
             </motion.button>
           ))}
+        </div>
+
+        {/* Dietary restrictions */}
+        <div className="mt-4">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">Dietary preferences</p>
+          <div className="flex flex-wrap gap-2">
+            {DIETARY_OPTIONS.map((option) => {
+              const active = dietaryRestrictions.includes(option)
+              return (
+                <motion.button
+                  key={option}
+                  type="button"
+                  onClick={() =>
+                    setDietaryRestrictions(prev =>
+                      active ? prev.filter(r => r !== option) : [...prev, option]
+                    )
+                  }
+                  whileHover={{ scale: 1.04, y: -1 }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={{ duration: 0.15 }}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                    active
+                      ? 'bg-[#2d6a4f] border-[#2d6a4f] text-white dark:bg-green-700 dark:border-green-700'
+                      : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-[#40916c] dark:hover:border-green-600 hover:text-[#2d6a4f] dark:hover:text-green-400'
+                  }`}
+                >
+                  {option}
+                </motion.button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* LLM provider */}
+        <div className="mt-4 flex items-center justify-between gap-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-900/40 px-4 py-3">
+          <div>
+            <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">LLM provider</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              {llmProvider === 'logos' ? 'Logos is selected' : 'OpenAI is selected'}
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={llmProvider === 'openai'}
+            onClick={() => setLlmProvider(provider => provider === 'logos' ? 'openai' : 'logos')}
+            className="relative grid h-9 w-32 grid-cols-2 items-center rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-1 text-xs font-semibold text-gray-500 dark:text-gray-400 shadow-sm transition-colors"
+          >
+            <span
+              className={`absolute left-1 inset-y-1 w-[calc(50%-0.25rem)] rounded-full bg-[#2d6a4f] shadow-sm transition-transform ${
+                llmProvider === 'openai' ? 'translate-x-full' : 'translate-x-0'
+              }`}
+            />
+            <span className={`relative z-10 text-center transition-colors ${llmProvider === 'logos' ? 'text-white' : ''}`}>
+              Logos
+            </span>
+            <span className={`relative z-10 text-center transition-colors ${llmProvider === 'openai' ? 'text-white' : ''}`}>
+              OpenAI
+            </span>
+          </button>
         </div>
 
         {/* Validation alert */}
@@ -209,9 +278,20 @@ export function RecipeCard({ token, onListGenerated }: RecipeCardProps) {
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ delay: (groupIdx * 4 + i) * 0.04, duration: 0.2 }}
-                          className="px-3 py-1.5 rounded-full text-xs font-medium bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/60 text-green-800 dark:text-green-300"
+                          title={item.restricted && item.alternative ? `Alternative: ${item.alternative}` : undefined}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium border flex items-center gap-1.5 ${
+                            item.restricted
+                              ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700/60 text-orange-800 dark:text-orange-300'
+                              : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800/60 text-green-800 dark:text-green-300'
+                          }`}
                         >
-                          {item.quantity !== 'N/A' ? `${item.quantity} ${item.unit} ` : ''}{item.name}
+                          {item.restricted && <AlertTriangle size={11} className="shrink-0" />}
+                          <span>
+                            {item.quantity === 'N/A' ? '' : `${item.quantity} ${item.unit} `}{item.name}
+                            {item.restricted && item.alternative && (
+                              <span className="ml-1 opacity-70">→ {item.alternative}</span>
+                            )}
+                          </span>
                         </motion.span>
                       ))}
                     </div>

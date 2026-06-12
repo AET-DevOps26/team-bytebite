@@ -1,5 +1,7 @@
 import json
 import os
+import re
+from typing import Literal
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -8,10 +10,20 @@ from pydantic import BaseModel
 
 load_dotenv()
 
-app = FastAPI()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+app = FastAPI(
+    title="ByteBite Gen AI Service API",
+    version="0.0.1",
+    description="Internal AI endpoints for parsing recipes and merging ingredient lists.",
+)
 
-SYSTEM_PROMPT = """
+LOGOS_BASE_URL = "https://logos.aet.cit.tum.de/v1"
+LOGOS_MODEL = "openai/gpt-oss-120b"
+OPENAI_MODEL = "gpt-4o-mini"
+DEFAULT_LLM_PROVIDER = "logos"
+
+Provider = Literal["logos", "openai"]
+
+BASE_SYSTEM_PROMPT = """
 ## Role
 You are a specialized Grocery List Agent. Your sole task is to convert recipe text into a structured, metric-only JSON grocery list.
 
@@ -48,15 +60,48 @@ Assign each ingredient a grocery store aisle category. Use one of the following:
 - International Foods
 - Other
 
+{dietary_section}
+
 ## Constraints
 - Return ONLY valid JSON.
 - Do not use markdown code blocks (```json).
-- Format: {"ingredients": [{"name": "string", "quantity": "string", "unit": "string", "category": "string"}]}
+- Format: {{"ingredients": [{{"name": "string", "quantity": "string", "unit": "string", "category": "string", "restricted": boolean, "alternative": "string or null"}}]}}
+- Set "restricted" to false and "alternative" to null for unrestricted ingredients.
 
 ## Input Data
 [User Input Follows]
 
 """
+
+DIETARY_RULES = {
+    "Vegan": "any animal product (meat, fish, dairy, eggs, honey, gelatin)",
+    "Vegetarian": "meat or fish (beef, pork, chicken, lamb, seafood, gelatin — but dairy and eggs are allowed)",
+    "Gluten Free": "gluten-containing ingredients (wheat flour, bread, pasta, barley, rye, soy sauce, malt)",
+    "Lactose Free": "lactose-containing dairy (milk, cream, butter, cheese, yogurt — lactose-free versions are acceptable)",
+}
+
+
+def build_system_prompt(dietary_restrictions: list[str]) -> str:
+    if not dietary_restrictions:
+        dietary_section = (
+            "## Dietary Restrictions\n"
+            "No dietary restrictions specified. Set \"restricted\" to false and \"alternative\" to null for all ingredients."
+        )
+    else:
+        rules = "\n".join(
+            f"- **{r}**: flag any ingredient that contains {DIETARY_RULES.get(r, r)}."
+            for r in dietary_restrictions
+            if r in DIETARY_RULES
+        )
+        dietary_section = (
+            f"## Dietary Restrictions\n"
+            f"The user has the following dietary restrictions: {', '.join(dietary_restrictions)}.\n\n"
+            f"{rules}\n\n"
+            f"For each flagged ingredient set \"restricted\" to true and provide a suitable "
+            f"\"alternative\" (e.g. \"oat milk\" for milk on a vegan diet). "
+            f"If no reasonable alternative exists, set \"alternative\" to null."
+        )
+    return BASE_SYSTEM_PROMPT.format(dietary_section=dietary_section)
 
 
 class Ingredient(BaseModel):
@@ -64,10 +109,14 @@ class Ingredient(BaseModel):
     quantity: str
     unit: str
     category: str
+    restricted: bool = False
+    alternative: str | None = None
 
 
 class GenerateRequest(BaseModel):
     dish: str
+    dietary_restrictions: list[str] = []
+    llm_provider: str = DEFAULT_LLM_PROVIDER
 
 
 class GenerateResponse(BaseModel):
@@ -75,29 +124,138 @@ class GenerateResponse(BaseModel):
     ingredients: list[Ingredient]
 
 
+class MergeRequest(BaseModel):
+    recipes: list[list[Ingredient]]
+    llm_provider: str = DEFAULT_LLM_PROVIDER
+
+
+class MergeResponse(BaseModel):
+    ingredients: list[Ingredient]
+
+
+MERGE_PROMPT = """
+## Role
+You are a Grocery List Merging Agent. Your sole task is to combine multiple ingredient lists into one unified, deduplicated shopping list.
+
+## Task
+1. Merge all provided ingredient lists into a single list.
+2. Combine duplicate ingredients: if the same ingredient appears in multiple lists, sum their quantities.
+3. Apply semantic deduplication: treat ingredients that refer to the same thing as duplicates, including synonyms and regional name variants.
+   - Examples of synonyms to merge: "spring onion" / "scallion", "bell pepper" / "capsicum",
+     "coriander" / "cilantro", "aubergine" / "eggplant", "courgette" / "zucchini",
+     "plain flour" / "all-purpose flour", "bicarbonate of soda" / "baking soda".
+   - Use the more common English name as the canonical name in the output.
+   - When merging synonyms, sum their quantities exactly as you would for exact-name duplicates.
+   - Do NOT merge ingredients that are merely similar but distinct
+     (e.g. "cherry tomatoes" and "tomatoes", "garlic clove" and "garlic powder").
+4. If units differ for the same ingredient, convert to a common metric unit before summing.
+5. If a quantity is "N/A" and the other is numeric, keep the numeric value.
+6. If both quantities are "N/A", keep "N/A".
+7. Preserve the category from the first occurrence of each ingredient.
+
+## Constraints
+- Return ONLY valid JSON.
+- Do not use markdown code blocks (```json).
+- Format: {"ingredients": [{"name": "string", "quantity": "string", "unit": "string", "category": "string"}]}
+
+## Input Data
+[Ingredient lists follow as JSON]
+
+"""
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
 
+def get_client(provider: Provider) -> OpenAI:
+    if provider == "openai":
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not configured")
+        return OpenAI(api_key=api_key)
+
+    api_key = os.getenv("LOGOS_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="LOGOS_KEY is not configured")
+    return OpenAI(api_key=api_key, base_url=LOGOS_BASE_URL)
+
+
+def normalize_provider(provider: str | None) -> Provider:
+    return "openai" if provider == "openai" else "logos"
+
+
+def create_chat_completion(provider: Provider, messages: list[dict[str, str]]):
+    kwargs = {
+        "model": LOGOS_MODEL if provider == "logos" else OPENAI_MODEL,
+        "messages": messages,
+    }
+    if provider == "openai":
+        kwargs["response_format"] = {"type": "json_object"}
+    return get_client(provider).chat.completions.create(**kwargs)
+
+
+def parse_json_content(content: str | None) -> dict:
+    if not content:
+        raise ValueError("LLM response was empty")
+
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", content, re.DOTALL)
+        if not match:
+            raise
+        return json.loads(match.group(0))
+
+
 @app.post("/api/ai/parse", response_model=GenerateResponse)
 def generate(request: GenerateRequest):
+    provider = normalize_provider(request.llm_provider)
+    system_prompt = build_system_prompt(request.dietary_restrictions)
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            response_format={"type": "json_object"},
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
+        response = create_chat_completion(
+            provider,
+            [
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": request.dish},
             ],
         )
     except OpenAIError as e:
-        raise HTTPException(status_code=502, detail=f"OpenAI error: {e}")
+        raise HTTPException(status_code=502, detail=f"{provider} error: {e}")
 
     try:
-        data = json.loads(response.choices[0].message.content)
+        data = parse_json_content(response.choices[0].message.content)
         ingredients = [Ingredient(**item) for item in data["ingredients"]]
     except (KeyError, ValueError) as e:
         raise HTTPException(status_code=500, detail=f"Failed to parse LLM response: {e}")
 
     return GenerateResponse(dish=request.dish, ingredients=ingredients)
+
+
+@app.post("/api/ai/merge", response_model=MergeResponse)
+def merge(request: MergeRequest):
+    provider = normalize_provider(request.llm_provider)
+    recipes_json = json.dumps(
+        [[ing.model_dump() for ing in recipe] for recipe in request.recipes],
+        indent=2,
+    )
+
+    try:
+        response = create_chat_completion(
+            provider,
+            [
+                {"role": "system", "content": MERGE_PROMPT},
+                {"role": "user", "content": recipes_json},
+            ],
+        )
+    except OpenAIError as e:
+        raise HTTPException(status_code=502, detail=f"{provider} error: {e}")
+
+    try:
+        data = parse_json_content(response.choices[0].message.content)
+        ingredients = [Ingredient(**item) for item in data["ingredients"]]
+    except (KeyError, ValueError) as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse LLM response: {e}")
+
+    return MergeResponse(ingredients=ingredients)

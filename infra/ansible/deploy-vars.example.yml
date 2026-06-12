@@ -1,9 +1,11 @@
 # Copy to deploy-vars.yml (gitignored) and fill in, then:
 #   ansible-playbook site.yml -e @deploy-vars.yml
 
-# Required: the OpenAI key, plus GHCR creds to pull the (private) microservice images.
+# Required: the Logos key, plus GHCR creds to pull the (private) microservice images.
+# OpenAI is optional unless users select it in the frontend.
 # Anything else overrides group_vars/bytebite.yml.
 
+logos_key: "logos-..."
 openai_api_key: "sk-..."
 
 # GHCR login — needed because the team-bytebite packages are private.
