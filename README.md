@@ -115,7 +115,6 @@ Open http://localhost:5173
 Requires Docker Desktop running.
 
 ```powershell
-$env:OPENAI_API_KEY="sk-..."
 docker compose up --build
 docker compose down  # To take down later
 ```
@@ -155,10 +154,9 @@ Alternatively, you can do manual deployment with Helm:
 (Requires `helm` and a valid kubeconfig)
 
 ```bash
-helm upgrade --install bytebite ./helm/bytebite \
-  --namespace team-bytebite \
-  --set genai.openaiApiKey="sk-..." \
-  --atomic
+kubectl config use-context stud
+helm upgrade --install bytebite ./helm/bytebite --namespace team-bytebite --set genai.openaiApiKey="sk-..." --atomic
+helm uninstall bytebite --namespace team-bytebite  # To take down later
 ```
 
 The app is available at https://team-bytebite.stud.k8s.aet.cit.tum.de

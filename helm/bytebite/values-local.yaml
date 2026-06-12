@@ -4,3 +4,9 @@ ingress:
 client:
   service:
     type: LoadBalancer
+
+userDb:
+  password: bytebite_user_password
+
+groceryDb:
+  password: bytebite_grocery_password
