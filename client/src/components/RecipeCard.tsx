@@ -2,10 +2,9 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChefHat, ShoppingCart, ArrowRight, Loader2 } from 'lucide-react'
 import { AlertBanner } from './AlertBanner'
+import type { Ingredient, GroceryList } from '../types'
 
 type Status = 'idle' | 'loading' | 'success' | 'error'
-
-type Ingredient = { name: string; quantity: string; unit: string; category: string }
 
 const CHIPS = [
   { emoji: '🍝', label: 'Spaghetti Carbonara' },
@@ -24,9 +23,10 @@ const PLACEHOLDERS = [
 
 interface RecipeCardProps {
   token: string
+  onListGenerated?: (list: GroceryList) => void
 }
 
-export function RecipeCard({ token }: RecipeCardProps) {
+export function RecipeCard({ token, onListGenerated }: RecipeCardProps) {
   const [input, setInput] = useState('')
   const [validationError, setValidationError] = useState('')
   const [status, setStatus] = useState<Status>('idle')
@@ -73,6 +73,12 @@ export function RecipeCard({ token }: RecipeCardProps) {
       const data = await response.json() as { dish: string; ingredients: Ingredient[] }
       setIngredients(data.ingredients)
       setStatus('success')
+      onListGenerated?.({
+        id: crypto.randomUUID(),
+        dish: data.dish,
+        createdAt: new Date().toISOString(),
+        ingredients: data.ingredients,
+      })
     } catch {
       setStatus('error')
     }

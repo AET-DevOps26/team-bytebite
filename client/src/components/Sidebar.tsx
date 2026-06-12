@@ -1,10 +1,16 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Home, ShoppingCart, Heart,
+  Home, ShoppingCart, Heart, BookOpen,
   Settings, User, Sun, Moon, X, LogOut,
-  Leaf,
+  Leaf, type LucideIcon,
 } from 'lucide-react'
 import type { AuthUser } from './AuthCard'
+
+type NavItem = {
+  icon: LucideIcon
+  label: string
+  view?: string
+}
 
 interface SidebarProps {
   darkMode: boolean
@@ -13,15 +19,18 @@ interface SidebarProps {
   onClose: () => void
   user: AuthUser
   onLogout: () => void
+  activeView: string
+  onNavigate: (view: string) => void
 }
 
-const navMain = [
-  { icon: Home, label: 'Home', active: true },
-  { icon: ShoppingCart, label: 'Shopping Lists' },
+const navMain: NavItem[] = [
+  { icon: Home, label: 'Home', view: 'home' },
+  { icon: BookOpen, label: 'Recipes', view: 'recipes' },
+  { icon: ShoppingCart, label: 'Grocery Lists', view: 'grocery-lists' },
   { icon: Heart, label: 'Favorites' },
 ]
 
-const navAccount = [
+const navAccount: NavItem[] = [
   { icon: Settings, label: 'Settings' },
   { icon: User, label: 'Profile' },
 ]
@@ -45,27 +54,44 @@ export function LogoMark({ scale = 'lg' }: { scale?: 'sm' | 'lg' }) {
   )
 }
 
-function NavSection({ label, items }: { label: string; items: typeof navMain }) {
+function NavSection({
+  label, items, activeView, onNavigate,
+}: {
+  label: string
+  items: NavItem[]
+  activeView: string
+  onNavigate: (view: string) => void
+}) {
   return (
     <div className="mb-1">
       <p className="px-3 mb-1 text-[10px] font-semibold tracking-widest uppercase text-gray-400 dark:text-gray-500">
         {label}
       </p>
-      {items.map(({ icon: Icon, label: itemLabel, active }) => (
-        <motion.button
-          key={itemLabel}
-          whileHover={{ x: 2 }}
-          transition={{ duration: 0.15 }}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
-            active
-              ? 'bg-green-50 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/80 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-gray-200'
-          }`}
-        >
-          <Icon size={16} className={active ? 'text-[#2d6a4f] dark:text-green-400' : ''} />
-          {itemLabel}
-        </motion.button>
-      ))}
+      {items.map(({ icon: Icon, label: itemLabel, view }) => {
+        const active = view !== undefined && activeView === view
+        const clickable = view !== undefined
+        return (
+          <motion.button
+            key={itemLabel}
+            whileHover={clickable ? { x: 2 } : {}}
+            transition={{ duration: 0.15 }}
+            onClick={() => clickable && onNavigate(view!)}
+            disabled={!clickable}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
+              !clickable ? 'opacity-40 cursor-default' : 'cursor-pointer'
+            } ${
+              active
+                ? 'bg-green-50 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                : clickable
+                  ? 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/80 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-gray-200'
+                  : 'text-gray-600 dark:text-gray-400'
+            }`}
+          >
+            <Icon size={16} className={active ? 'text-[#2d6a4f] dark:text-green-400' : ''} />
+            {itemLabel}
+          </motion.button>
+        )
+      })}
     </div>
   )
 }
@@ -75,11 +101,15 @@ function SidebarContent({
   onToggleDark,
   user,
   onLogout,
+  activeView,
+  onNavigate,
 }: {
   darkMode: boolean
   onToggleDark: () => void
   user: AuthUser
   onLogout: () => void
+  activeView: string
+  onNavigate: (view: string) => void
 }) {
   return (
     <div className="flex flex-col h-full">
@@ -90,11 +120,11 @@ function SidebarContent({
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-4">
-        <NavSection label="Main" items={navMain} />
-        <NavSection label="Account" items={navAccount} />
+        <NavSection label="Main" items={navMain} activeView={activeView} onNavigate={onNavigate} />
+        <NavSection label="Account" items={navAccount} activeView={activeView} onNavigate={onNavigate} />
       </nav>
 
-      {/* Dark mode toggle */}
+      {/* Bottom section */}
       <div className="px-4 py-4 border-t border-gray-200/60 dark:border-gray-800/60">
         <div className="mb-3 px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800/60">
           <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{user.name}</p>
@@ -130,12 +160,12 @@ function SidebarContent({
   )
 }
 
-export function Sidebar({ darkMode, onToggleDark, isOpen, onClose, user, onLogout }: SidebarProps) {
+export function Sidebar({ darkMode, onToggleDark, isOpen, onClose, user, onLogout, activeView, onNavigate }: SidebarProps) {
   return (
     <>
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex fixed left-0 top-0 h-full w-64 flex-col bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-800/50 z-20">
-        <SidebarContent darkMode={darkMode} onToggleDark={onToggleDark} user={user} onLogout={onLogout} />
+        <SidebarContent darkMode={darkMode} onToggleDark={onToggleDark} user={user} onLogout={onLogout} activeView={activeView} onNavigate={onNavigate} />
       </aside>
 
       {/* Mobile sidebar */}
@@ -154,7 +184,7 @@ export function Sidebar({ darkMode, onToggleDark, isOpen, onClose, user, onLogou
             >
               <X size={16} />
             </button>
-            <SidebarContent darkMode={darkMode} onToggleDark={onToggleDark} user={user} onLogout={onLogout} />
+            <SidebarContent darkMode={darkMode} onToggleDark={onToggleDark} user={user} onLogout={onLogout} activeView={activeView} onNavigate={onNavigate} />
           </motion.aside>
         )}
       </AnimatePresence>
