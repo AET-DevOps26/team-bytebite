@@ -80,6 +80,8 @@ services:
       # matching `expose` and the api-gateway's GROCERY_SERVICE_BASE_URL.
       SERVER_PORT: "8080"
       GENAI_BASE_URL: http://gen-ai:8000
+      # Shared with user-service so grocery-service can validate the same JWTs.
+      JWT_SECRET: ${JWT_SECRET:-bytebite-local-dev-secret-change-me}
       SPRING_DATASOURCE_URL: jdbc:postgresql://grocery-db:5432/${GROCERY_DB_NAME:-bytebite_grocery}
       SPRING_DATASOURCE_USERNAME: ${GROCERY_DB_USER:-bytebite_grocery}
       SPRING_DATASOURCE_PASSWORD: ${GROCERY_DB_PASSWORD:-bytebite_grocery_password}

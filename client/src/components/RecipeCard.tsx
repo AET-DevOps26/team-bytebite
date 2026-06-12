@@ -6,8 +6,6 @@ import type { Ingredient, GroceryList } from '../types'
 
 type Status = 'idle' | 'loading' | 'success' | 'error'
 
-type Ingredient = { name: string; quantity: string; unit: string; category: string; restricted: boolean; alternative: string | null }
-
 type DietaryRestriction = 'Vegan' | 'Vegetarian' | 'Gluten Free' | 'Lactose Free'
 type LlmProvider = 'logos' | 'openai'
 

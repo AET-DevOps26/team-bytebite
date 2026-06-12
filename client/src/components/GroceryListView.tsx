@@ -22,7 +22,7 @@ function listToText(list: GroceryList) {
 }
 
 export function GroceryListView({ lists, onToggleItem, onDeleteList }: GroceryListViewProps) {
-  const [openId, setOpenId] = useState<string | null>(lists[0]?.id ?? null)
+  const [openId, setOpenId] = useState<string | null>(null)
   const [copyState, setCopyState] = useState<{ id: string; ok: boolean } | null>(null)
 
   const showCopyResult = (id: string, ok: boolean) => {
