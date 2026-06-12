@@ -25,7 +25,7 @@ public class GroceryList {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    @OneToMany(mappedBy = "groceryList", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "groceryList", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<GroceryItem> items;
 
     public UUID getId() { return id; }
@@ -34,4 +34,11 @@ public class GroceryList {
     public UUID getUserId() { return userId; }
     public Instant getCreatedAt() { return createdAt; }
     public List<GroceryItem> getItems() { return items; }
+
+    public void setId(UUID id) { this.id = id; }
+    public void setName(String name) { this.name = name; }
+    public void setOutdated(boolean outdated) { this.outdated = outdated; }
+    public void setUserId(UUID userId) { this.userId = userId; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public void setItems(List<GroceryItem> items) { this.items = items; }
 }
