@@ -8,6 +8,7 @@ type Status = 'idle' | 'loading' | 'success' | 'error'
 type Ingredient = { name: string; quantity: string; unit: string; category: string; restricted: boolean; alternative: string | null }
 
 type DietaryRestriction = 'Vegan' | 'Vegetarian' | 'Gluten Free' | 'Lactose Free'
+type LlmProvider = 'logos' | 'openai'
 
 const DIETARY_OPTIONS: DietaryRestriction[] = ['Vegan', 'Vegetarian', 'Gluten Free', 'Lactose Free']
 
@@ -37,6 +38,7 @@ export function RecipeCard({ token }: RecipeCardProps) {
   const [ingredients, setIngredients] = useState<Ingredient[]>([])
   const [placeholderIdx, setPlaceholderIdx] = useState(0)
   const [dietaryRestrictions, setDietaryRestrictions] = useState<DietaryRestriction[]>([])
+  const [llmProvider, setLlmProvider] = useState<LlmProvider>('logos')
 
   useEffect(() => {
     if (input) return
@@ -72,7 +74,7 @@ export function RecipeCard({ token }: RecipeCardProps) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ dish: trimmed, dietaryRestrictions }),
+        body: JSON.stringify({ dish: trimmed, dietaryRestrictions, llmProvider }),
       })
       if (!response.ok) throw new Error('Request failed')
       const data = await response.json() as { dish: string; ingredients: Ingredient[] }
@@ -164,6 +166,35 @@ export function RecipeCard({ token }: RecipeCardProps) {
               )
             })}
           </div>
+        </div>
+
+        {/* LLM provider */}
+        <div className="mt-4 flex items-center justify-between gap-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-900/40 px-4 py-3">
+          <div>
+            <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">LLM provider</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              {llmProvider === 'logos' ? 'Logos is selected' : 'OpenAI is selected'}
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={llmProvider === 'openai'}
+            onClick={() => setLlmProvider(provider => provider === 'logos' ? 'openai' : 'logos')}
+            className="relative grid h-9 w-32 grid-cols-2 items-center rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-1 text-xs font-semibold text-gray-500 dark:text-gray-400 shadow-sm transition-colors"
+          >
+            <span
+              className={`absolute left-1 inset-y-1 w-[calc(50%-0.25rem)] rounded-full bg-[#2d6a4f] shadow-sm transition-transform ${
+                llmProvider === 'openai' ? 'translate-x-full' : 'translate-x-0'
+              }`}
+            />
+            <span className={`relative z-10 text-center transition-colors ${llmProvider === 'logos' ? 'text-white' : ''}`}>
+              Logos
+            </span>
+            <span className={`relative z-10 text-center transition-colors ${llmProvider === 'openai' ? 'text-white' : ''}`}>
+              OpenAI
+            </span>
+          </button>
         </div>
 
         {/* Validation alert */}
