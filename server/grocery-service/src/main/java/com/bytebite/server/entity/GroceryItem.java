@@ -1,6 +1,8 @@
 package com.bytebite.server.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 import java.util.UUID;
 
 @Entity
@@ -21,6 +23,7 @@ public class GroceryItem {
     private String unit;
 
     @Enumerated(EnumType.STRING)
+    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(columnDefinition = "grocery_category", nullable = false)
     private GroceryCategory category;
 
