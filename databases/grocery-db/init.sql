@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS grocery_lists (
     grocery_list_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     outdated BOOLEAN NOT NULL DEFAULT FALSE,
-    user_id UUID NOT NULL
+    user_id UUID NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS grocery_list_recipes (

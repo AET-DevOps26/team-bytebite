@@ -8,3 +8,9 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Dev admin account: login with admin@bytebite.dev / password
+INSERT INTO users (name, email, password_hash) VALUES (
+    'Admin',
+    'admin@bytebite.dev',
+    '$2b$12$F0rLm1sYDRHEUjQkni8z3e7dpeFNW4irxo4jkMgP4YMGffswtD.OS'
+) ON CONFLICT (email) DO NOTHING;
