@@ -15,6 +15,8 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -32,7 +34,10 @@ public class GenerateController {
     public RecipeResponseDTO generate(@RequestBody GenerateRequest request) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<Map<String, String>> entity = new HttpEntity<>(Map.of("dish", request.dish()), headers);
+        Map<String, Object> body = new HashMap<>();
+        body.put("dish", request.dish());
+        body.put("dietary_restrictions", request.dietaryRestrictions() != null ? request.dietaryRestrictions() : List.of());
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
 
         RecipeResponseDTO response;
         try {
