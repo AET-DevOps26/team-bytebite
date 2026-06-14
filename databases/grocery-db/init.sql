@@ -45,9 +45,9 @@ CREATE TABLE IF NOT EXISTS grocery_list_recipes (
 CREATE TABLE IF NOT EXISTS grocery_items (
     item_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
-    quantity VARCHAR(50) NOT NULL,
+    quantity DOUBLE PRECISION,
     unit VARCHAR(50) NOT NULL,
-    category VARCHAR(50) NOT NULL DEFAULT 'OTHER',
+    category grocery_category NOT NULL DEFAULT 'OTHER',
     is_purchased BOOLEAN NOT NULL DEFAULT FALSE,
     recipe_id UUID,
     grocery_list_id UUID,

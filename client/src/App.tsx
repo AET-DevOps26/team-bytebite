@@ -8,38 +8,76 @@ import { FeatureCards } from './components/FeatureCards'
 import { AuthCard, type AuthPayload, type AuthUser } from './components/AuthCard'
 import { GroceryListView } from './components/GroceryListView'
 import { RecipeListView } from './components/RecipeListView'
-import type { GroceryList, ApiRecipe } from './types'
+import type {
+  GroceryList, ApiRecipe, ApiRecipeSummary, RecipeSummary, Ingredient,
+  ApiGroceryList, ApiGroceryListSummary, GroceryListSummary, GroceryItemDetail,
+} from './types'
 
 type View = 'home' | 'grocery-lists' | 'recipes'
-type RecipesStatus = 'loading' | 'ready' | 'error'
+type LoadStatus = 'loading' | 'ready' | 'error'
 
-function apiRecipeToList(recipe: ApiRecipe): GroceryList {
+function apiSummaryToRecipe(summary: ApiRecipeSummary): RecipeSummary {
+  return { id: summary.recipeId, dish: summary.name, createdAt: summary.createdAt }
+}
+
+// The API uses the DB's numeric quantity (null = unspecified); the client keeps a display
+// string, so convert at the API boundary.
+function formatQuantity(quantity: number | null): string {
+  return quantity === null ? 'N/A' : String(quantity)
+}
+
+function parseQuantity(quantity: string): number | null {
+  const trimmed = quantity?.trim()
+  if (!trimmed || trimmed === 'N/A') return null
+  const n = Number(trimmed)
+  return Number.isFinite(n) ? n : null
+}
+
+function apiItemsToIngredients(recipe: ApiRecipe): Ingredient[] {
+  return recipe.items.map(item => ({
+    name: item.name,
+    quantity: formatQuantity(item.quantity),
+    unit: item.unit,
+    category: item.category,
+  }))
+}
+
+function apiSummaryToGroceryList(summary: ApiGroceryListSummary): GroceryListSummary {
   return {
-    id: recipe.recipeId,
-    dish: recipe.name,
-    createdAt: recipe.createdAt,
-    ingredients: recipe.items.map(item => ({
-      name: item.name,
-      quantity: item.quantity,
-      unit: item.unit,
-      category: item.category,
-    })),
+    id: summary.groceryListId,
+    dish: summary.name,
+    createdAt: summary.createdAt,
+    itemCount: summary.itemCount,
+    purchasedCount: summary.purchasedCount,
   }
+}
+
+// POST/PUT return the full detail; derive the summary counts the list view needs from it.
+function detailToGrocerySummary(detail: ApiGroceryList): GroceryListSummary {
+  return {
+    id: detail.groceryListId,
+    dish: detail.name,
+    createdAt: detail.createdAt,
+    itemCount: detail.items.length,
+    purchasedCount: detail.items.filter(item => item.purchased).length,
+  }
+}
+
+function apiItemsToGroceryDetail(list: ApiGroceryList): GroceryItemDetail[] {
+  return list.items.map(item => ({
+    itemId: item.itemId,
+    name: item.name,
+    quantity: formatQuantity(item.quantity),
+    unit: item.unit,
+    category: item.category,
+    purchased: item.purchased,
+  }))
 }
 
 function getInitialDark(): boolean {
   const stored = localStorage.getItem('bytebite-dark')
   if (stored !== null) return stored === 'true'
   return window.matchMedia('(prefers-color-scheme: dark)').matches
-}
-
-function loadLists(userId: string): GroceryList[] {
-  const stored = localStorage.getItem(`bytebite-lists-${userId}`)
-  return stored ? JSON.parse(stored) as GroceryList[] : []
-}
-
-function saveLists(userId: string, lists: GroceryList[]) {
-  localStorage.setItem(`bytebite-lists-${userId}`, JSON.stringify(lists))
 }
 
 function App() {
@@ -51,25 +89,54 @@ function App() {
     const stored = localStorage.getItem('bytebite-user')
     return stored ? JSON.parse(stored) as AuthUser : null
   })
-  const [savedLists, setSavedLists] = useState<GroceryList[]>(() =>
-    user ? loadLists(user.userId) : []
-  )
-  const [recipes, setRecipes] = useState<GroceryList[]>([])
-  const [recipesStatus, setRecipesStatus] = useState<RecipesStatus>('loading')
+  const [recipes, setRecipes] = useState<RecipeSummary[]>([])
+  const [recipesStatus, setRecipesStatus] = useState<LoadStatus>('loading')
+  const [groceryLists, setGroceryLists] = useState<GroceryListSummary[]>([])
+  const [groceryStatus, setGroceryStatus] = useState<LoadStatus>('loading')
 
   const loadRecipes = useCallback((authToken: string) => {
     setRecipesStatus('loading')
     fetch('/api/recipes', { headers: { Authorization: `Bearer ${authToken}` } })
       .then(response => {
         if (!response.ok) throw new Error('Failed to load recipes')
-        return response.json() as Promise<ApiRecipe[]>
+        return response.json() as Promise<ApiRecipeSummary[]>
       })
       .then(data => {
-        setRecipes(data.map(apiRecipeToList))
+        setRecipes(data.map(apiSummaryToRecipe))
         setRecipesStatus('ready')
       })
       .catch(() => setRecipesStatus('error'))
   }, [])
+
+  const loadGroceryLists = useCallback((authToken: string) => {
+    setGroceryStatus('loading')
+    fetch('/api/grocery-list', { headers: { Authorization: `Bearer ${authToken}` } })
+      .then(response => {
+        if (!response.ok) throw new Error('Failed to load grocery lists')
+        return response.json() as Promise<ApiGroceryListSummary[]>
+      })
+      .then(data => {
+        setGroceryLists(data.map(apiSummaryToGroceryList))
+        setGroceryStatus('ready')
+      })
+      .catch(() => setGroceryStatus('error'))
+  }, [])
+
+  const fetchRecipeItems = useCallback(async (recipeId: string): Promise<Ingredient[]> => {
+    const response = await fetch(`/api/recipes/${recipeId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!response.ok) throw new Error('Failed to load recipe items')
+    return apiItemsToIngredients(await response.json() as ApiRecipe)
+  }, [token])
+
+  const fetchGroceryListItems = useCallback(async (listId: string): Promise<GroceryItemDetail[]> => {
+    const response = await fetch(`/api/grocery-list/${listId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!response.ok) throw new Error('Failed to load grocery list items')
+    return apiItemsToGroceryDetail(await response.json() as ApiGroceryList)
+  }, [token])
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode)
@@ -88,10 +155,10 @@ function App() {
       .then(payload => {
         setToken(payload.token)
         setUser(payload.user)
-        setSavedLists(loadLists(payload.user.userId))
         localStorage.setItem('bytebite-token', payload.token)
         localStorage.setItem('bytebite-user', JSON.stringify(payload.user))
         loadRecipes(payload.token)
+        loadGroceryLists(payload.token)
       })
       .catch(() => {
         localStorage.removeItem('bytebite-token')
@@ -99,7 +166,7 @@ function App() {
         setToken('')
         setUser(null)
       })
-  }, [loadRecipes])
+  }, [loadRecipes, loadGroceryLists])
 
   const toggleDark = () => setDarkMode(d => !d)
   const openSidebar = () => setSidebarOpen(true)
@@ -113,10 +180,10 @@ function App() {
   const handleAuthenticated = (payload: AuthPayload) => {
     setToken(payload.token)
     setUser(payload.user)
-    setSavedLists(loadLists(payload.user.userId))
     localStorage.setItem('bytebite-token', payload.token)
     localStorage.setItem('bytebite-user', JSON.stringify(payload.user))
     loadRecipes(payload.token)
+    loadGroceryLists(payload.token)
   }
 
   const handleLogout = () => {
@@ -124,31 +191,23 @@ function App() {
     localStorage.removeItem('bytebite-user')
     setToken('')
     setUser(null)
-    setSavedLists([])
     setRecipes([])
+    setGroceryLists([])
     setView('home')
   }
 
+  // A generated dish is persisted as both a recipe and a grocery list; each view reads its own resource.
   const handleListGenerated = (list: GroceryList) => {
-    if (!user) return
-    // Grocery lists stay client-side for now; recipes are persisted server-side.
-    setSavedLists(prev => {
-      const next = [list, ...prev]
-      saveLists(user.userId, next)
-      return next
-    })
+    if (!token) return
 
     fetch('/api/recipes', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({
         name: list.dish,
         items: list.ingredients.map(item => ({
           name: item.name,
-          quantity: item.quantity,
+          quantity: parseQuantity(item.quantity),
           unit: item.unit,
           category: item.category,
         })),
@@ -158,9 +217,32 @@ function App() {
         if (!response.ok) throw new Error('Failed to save recipe')
         return response.json() as Promise<ApiRecipe>
       })
-      .then(saved => setRecipes(prev => [apiRecipeToList(saved), ...prev]))
+      .then(saved => setRecipes(prev => [apiSummaryToRecipe(saved), ...prev]))
       .catch(() => {
-        // Recipe persistence failed; the grocery list is still saved locally.
+        // Recipe persistence failed; the grocery list may still be saved.
+      })
+
+    fetch('/api/grocery-list', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        name: list.dish,
+        items: list.ingredients.map(item => ({
+          name: item.name,
+          quantity: parseQuantity(item.quantity),
+          unit: item.unit,
+          category: item.category,
+          purchased: false,
+        })),
+      }),
+    })
+      .then(response => {
+        if (!response.ok) throw new Error('Failed to save grocery list')
+        return response.json() as Promise<ApiGroceryList>
+      })
+      .then(saved => setGroceryLists(prev => [detailToGrocerySummary(saved), ...prev]))
+      .catch(() => {
+        // Grocery-list persistence failed; the recipe may still be saved.
       })
   }
 
@@ -177,31 +259,43 @@ function App() {
       .catch(() => setRecipes(previous))
   }
 
-  const handleToggleItem = (listId: string, itemIndex: number) => {
-    if (!user) return
-    setSavedLists(prev => {
-      const next = prev.map(list =>
+  // Persists a single item's picked-up state via PATCH and keeps the summary counts in sync.
+  // Returns false if the server rejected the change so the view can revert its optimistic update.
+  const handleToggleGroceryItem = useCallback(
+    async (listId: string, itemId: string, purchased: boolean): Promise<boolean> => {
+      const adjust = (delta: number) => setGroceryLists(prev => prev.map(list =>
         list.id === listId
-          ? {
-              ...list,
-              ingredients: list.ingredients.map((item, i) =>
-                i === itemIndex ? { ...item, checked: !item.checked } : item
-              ),
-            }
+          ? { ...list, purchasedCount: Math.max(0, Math.min(list.itemCount, list.purchasedCount + delta)) }
           : list
-      )
-      saveLists(user.userId, next)
-      return next
-    })
-  }
+      ))
+      adjust(purchased ? 1 : -1)
+      try {
+        const response = await fetch(`/api/grocery-list/${listId}/items/${itemId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ purchased }),
+        })
+        if (!response.ok) throw new Error('Failed to update item')
+        return true
+      } catch {
+        adjust(purchased ? -1 : 1)
+        return false
+      }
+    },
+    [token]
+  )
 
   const handleDeleteList = (listId: string) => {
-    if (!user) return
-    setSavedLists(prev => {
-      const next = prev.filter(list => list.id !== listId)
-      saveLists(user.userId, next)
-      return next
+    const previous = groceryLists
+    setGroceryLists(prev => prev.filter(list => list.id !== listId))
+    fetch(`/api/grocery-list/${listId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
     })
+      .then(response => {
+        if (!response.ok && response.status !== 404) throw new Error('Failed to delete grocery list')
+      })
+      .catch(() => setGroceryLists(previous))
   }
 
   if (!token || !user) {
@@ -260,9 +354,12 @@ function App() {
                 transition={{ duration: 0.15 }}
               >
                 <GroceryListView
-                  lists={savedLists}
-                  onToggleItem={handleToggleItem}
+                  lists={groceryLists}
+                  status={groceryStatus}
+                  onRetry={() => loadGroceryLists(token)}
+                  onToggleItem={handleToggleGroceryItem}
                   onDeleteList={handleDeleteList}
+                  fetchItems={fetchGroceryListItems}
                 />
               </motion.div>
             ) : view === 'recipes' ? (
@@ -274,10 +371,11 @@ function App() {
                 transition={{ duration: 0.15 }}
               >
                 <RecipeListView
-                  lists={recipes}
+                  recipes={recipes}
                   status={recipesStatus}
                   onRetry={() => loadRecipes(token)}
-                  onDeleteList={handleDeleteRecipe}
+                  onDeleteRecipe={handleDeleteRecipe}
+                  fetchItems={fetchRecipeItems}
                 />
               </motion.div>
             ) : (

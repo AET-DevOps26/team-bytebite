@@ -47,9 +47,12 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             return exchange.getResponse().setComplete();
         }
 
+        // Use set() so any client-supplied X-User-* headers are overwritten, never trusted.
         ServerHttpRequest request = exchange.getRequest().mutate()
-                .header("X-User-Id", payload.userId())
-                .header("X-User-Email", payload.email())
+                .headers(headers -> {
+                    headers.set("X-User-Id", payload.userId());
+                    headers.set("X-User-Email", payload.email());
+                })
                 .build();
         return chain.filter(exchange.mutate().request(request).build());
     }
