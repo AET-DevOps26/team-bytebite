@@ -3,6 +3,16 @@ output "public_ip" {
   value       = azurerm_public_ip.main.ip_address
 }
 
+output "resource_group_name" {
+  description = "Resource group holding the VM. Used by CI to start the VM if it was deallocated to save cost."
+  value       = azurerm_resource_group.main.name
+}
+
+output "vm_name" {
+  description = "Name of the VM. Used by CI to start the VM if it was deallocated to save cost."
+  value       = azurerm_linux_virtual_machine.main.name
+}
+
 output "admin_username" {
   description = "SSH/admin username on the VM."
   value       = var.admin_username

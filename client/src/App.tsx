@@ -196,54 +196,33 @@ function App() {
     setView('home')
   }
 
-  // A generated dish is persisted as both a recipe and a grocery list; each view reads its own resource.
-  const handleListGenerated = (list: GroceryList) => {
-    if (!token) return
+  // A generated dish is saved as a recipe only; grocery lists are created later by merging
+  // recipes on the Recipes page. Returns true when the recipe was persisted so the Home
+  // page can confirm it to the user.
+  const handleListGenerated = async (list: GroceryList): Promise<boolean> => {
+    if (!token) return false
 
-    fetch('/api/recipes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({
-        name: list.dish,
-        items: list.ingredients.map(item => ({
-          name: item.name,
-          quantity: parseQuantity(item.quantity),
-          unit: item.unit,
-          category: item.category,
-        })),
-      }),
-    })
-      .then(response => {
-        if (!response.ok) throw new Error('Failed to save recipe')
-        return response.json() as Promise<ApiRecipe>
+    try {
+      const response = await fetch('/api/recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          name: list.dish,
+          items: list.ingredients.map(item => ({
+            name: item.name,
+            quantity: parseQuantity(item.quantity),
+            unit: item.unit,
+            category: item.category,
+          })),
+        }),
       })
-      .then(saved => setRecipes(prev => [apiSummaryToRecipe(saved), ...prev]))
-      .catch(() => {
-        // Recipe persistence failed; the grocery list may still be saved.
-      })
-
-    fetch('/api/grocery-list', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({
-        name: list.dish,
-        items: list.ingredients.map(item => ({
-          name: item.name,
-          quantity: parseQuantity(item.quantity),
-          unit: item.unit,
-          category: item.category,
-          purchased: false,
-        })),
-      }),
-    })
-      .then(response => {
-        if (!response.ok) throw new Error('Failed to save grocery list')
-        return response.json() as Promise<ApiGroceryList>
-      })
-      .then(saved => setGroceryLists(prev => [detailToGrocerySummary(saved), ...prev]))
-      .catch(() => {
-        // Grocery-list persistence failed; the recipe may still be saved.
-      })
+      if (!response.ok) throw new Error('Failed to save recipe')
+      const saved = await response.json() as ApiRecipe
+      setRecipes(prev => [apiSummaryToRecipe(saved), ...prev])
+      return true
+    } catch {
+      return false
+    }
   }
 
   const handleDeleteRecipe = (recipeId: string) => {
@@ -257,6 +236,24 @@ function App() {
         if (!response.ok && response.status !== 404) throw new Error('Failed to delete recipe')
       })
       .catch(() => setRecipes(previous))
+  }
+
+  // Merges the selected recipes into a new grocery list server-side and prepends it to the
+  // history. Returns false on failure so the Recipes view can surface an error to the user.
+  const handleMergeRecipes = async (recipeIds: string[]): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/grocery-list/merge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ recipeIds, llmProvider: 'logos' }),
+      })
+      if (!response.ok) throw new Error('Failed to merge recipes')
+      const saved = await response.json() as ApiGroceryList
+      setGroceryLists(prev => [detailToGrocerySummary(saved), ...prev])
+      return true
+    } catch {
+      return false
+    }
   }
 
   // Persists a single item's picked-up state via PATCH and keeps the summary counts in sync.
@@ -376,6 +373,7 @@ function App() {
                   onRetry={() => loadRecipes(token)}
                   onDeleteRecipe={handleDeleteRecipe}
                   fetchItems={fetchRecipeItems}
+                  onMerge={handleMergeRecipes}
                 />
               </motion.div>
             ) : (
