@@ -63,4 +63,6 @@ jobs:
             --set genai.image.tag=${{ steps.vars.outputs.image_tag }} \
             --set genai.logosKey="${{ secrets.LOGOS_KEY }}" \
             --set genai.openaiApiKey="${{ secrets.OPENAI_API_KEY }}" \
+            --set userDb.password="${{ secrets.USER_DB_PASSWORD }}" \
+            --set groceryDb.password="${{ secrets.GROCERY_DB_PASSWORD }}" \
             --atomic

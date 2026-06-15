@@ -58,6 +58,24 @@ genai:
   logosKey: ""
   openaiApiKey: ""
 
+userDb:
+  image:
+    repository: ghcr.io/aet-devops26/team-bytebite/user-db
+    tag: latest
+    pullPolicy: Always
+  name: bytebite_user
+  user: bytebite_user
+  password: ""
+
+groceryDb:
+  image:
+    repository: ghcr.io/aet-devops26/team-bytebite/grocery-db
+    tag: latest
+    pullPolicy: Always
+  name: bytebite_grocery
+  user: bytebite_grocery
+  password: ""
+
 ingress:
   enabled: true
   className: "nginx"

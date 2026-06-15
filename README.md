@@ -125,9 +125,8 @@ The UI includes the User Service, Grocery Service, and Gen AI Service OpenAPI de
 Requires Docker Desktop running.
 
 ```powershell
-$env:LOGOS_KEY="..."
-$env:OPENAI_API_KEY="sk-..."   # optional, only needed for the OpenAI switch
 docker compose up --build
+docker compose down  # To take down later
 ```
 
 Open http://localhost:8081
@@ -139,8 +138,17 @@ Drop `--build` on subsequent starts if nothing has changed. To stop: `docker com
 ### Kubernetes
 
 #### Local Kubernetes Deployment
-...
 
+Requires a local Kubernetes cluster running via Docker Desktop.
+
+```powershell
+kubectl config use-context docker-desktop
+kubectl create namespace team-bytebite
+helm upgrade --install bytebite ./helm/bytebite -f ./helm/bytebite/values-local.yaml --namespace team-bytebite --set genai.openaiApiKey="sk-..." --atomic
+helm uninstall bytebite --namespace team-bytebite  # To take down later
+```
+
+Open http://localhost:80
 
 #### Kubernetes Deployment to the AET cluster
 
@@ -156,11 +164,9 @@ Alternatively, you can do manual deployment with Helm:
 (Requires `helm` and a valid kubeconfig)
 
 ```bash
-helm upgrade --install bytebite ./helm/bytebite \
-  --namespace team-bytebite \
-  --set genai.logosKey="..." \
-  --set genai.openaiApiKey="sk-..." \
-  --atomic
+kubectl config use-context stud
+helm upgrade --install bytebite ./helm/bytebite --namespace team-bytebite --set genai.openaiApiKey="sk-..." --atomic
+helm uninstall bytebite --namespace team-bytebite  # To take down later
 ```
 
 The app is available at https://team-bytebite.stud.k8s.aet.cit.tum.de

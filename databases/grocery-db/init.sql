@@ -16,7 +16,8 @@ CREATE TYPE grocery_category AS ENUM (
 CREATE TABLE IF NOT EXISTS recipes (
     recipe_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
-    user_id UUID NOT NULL
+    user_id UUID NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS grocery_lists (
@@ -44,7 +45,7 @@ CREATE TABLE IF NOT EXISTS grocery_list_recipes (
 CREATE TABLE IF NOT EXISTS grocery_items (
     item_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
-    quantity DOUBLE PRECISION NOT NULL,
+    quantity DOUBLE PRECISION,
     unit VARCHAR(50) NOT NULL,
     category grocery_category NOT NULL DEFAULT 'OTHER',
     is_purchased BOOLEAN NOT NULL DEFAULT FALSE,

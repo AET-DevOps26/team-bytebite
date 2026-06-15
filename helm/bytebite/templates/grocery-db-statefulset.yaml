@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: bytebite-grocery-db
+  namespace: {{ .Values.namespace }}
+spec:
+  serviceName: grocery-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bytebite-grocery-db
+  template:
+    metadata:
+      labels:
+        app: bytebite-grocery-db
+    spec:
+      containers:
+        - name: grocery-db
+          image: "{{ .Values.groceryDb.image.repository }}:{{ .Values.groceryDb.image.tag }}"
+          imagePullPolicy: {{ .Values.groceryDb.image.pullPolicy }}
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: {{ .Values.groceryDb.name }}
+            - name: POSTGRES_USER
+              value: {{ .Values.groceryDb.user }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: grocery-db-password
+          volumeMounts:
+            - name: grocery-db-data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: grocery-db-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi

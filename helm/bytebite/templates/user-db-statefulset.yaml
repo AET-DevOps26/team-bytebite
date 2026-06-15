@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: bytebite-user-db
+  namespace: {{ .Values.namespace }}
+spec:
+  serviceName: user-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bytebite-user-db
+  template:
+    metadata:
+      labels:
+        app: bytebite-user-db
+    spec:
+      containers:
+        - name: user-db
+          image: "{{ .Values.userDb.image.repository }}:{{ .Values.userDb.image.tag }}"
+          imagePullPolicy: {{ .Values.userDb.image.pullPolicy }}
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: {{ .Values.userDb.name }}
+            - name: POSTGRES_USER
+              value: {{ .Values.userDb.user }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: user-db-password
+          volumeMounts:
+            - name: user-db-data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: user-db-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi

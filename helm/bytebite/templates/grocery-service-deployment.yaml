@@ -29,3 +29,12 @@ spec:
           env:
             - name: GENAI_BASE_URL
               value: "http://genai-service:{{ .Values.genai.service.port }}"
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://grocery-db:5432/{{ .Values.groceryDb.name }}"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: {{ .Values.groceryDb.user }}
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: grocery-db-password
