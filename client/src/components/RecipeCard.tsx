@@ -28,7 +28,7 @@ const PLACEHOLDERS = [
 
 interface RecipeCardProps {
   token: string
-  onListGenerated?: (list: GroceryList) => void
+  onListGenerated?: (list: GroceryList) => Promise<boolean>
 }
 
 export function RecipeCard({ token, onListGenerated }: RecipeCardProps) {
@@ -39,6 +39,7 @@ export function RecipeCard({ token, onListGenerated }: RecipeCardProps) {
   const [placeholderIdx, setPlaceholderIdx] = useState(0)
   const [dietaryRestrictions, setDietaryRestrictions] = useState<DietaryRestriction[]>([])
   const [llmProvider, setLlmProvider] = useState<LlmProvider>('logos')
+  const [savedToRecipes, setSavedToRecipes] = useState(false)
 
   useEffect(() => {
     if (input) return
@@ -67,6 +68,7 @@ export function RecipeCard({ token, onListGenerated }: RecipeCardProps) {
     }
     setStatus('loading')
     setIngredients([])
+    setSavedToRecipes(false)
     try {
       const response = await fetch('/api/recipes/generate', {
         method: 'POST',
@@ -80,12 +82,13 @@ export function RecipeCard({ token, onListGenerated }: RecipeCardProps) {
       const data = await response.json() as { dish: string; ingredients: Ingredient[] }
       setIngredients(data.ingredients)
       setStatus('success')
-      onListGenerated?.({
+      const saved = await onListGenerated?.({
         id: crypto.randomUUID(),
         dish: data.dish,
         createdAt: new Date().toISOString(),
         ingredients: data.ingredients,
       })
+      setSavedToRecipes(saved === true)
     } catch {
       setStatus('error')
     }
@@ -252,6 +255,15 @@ export function RecipeCard({ token, onListGenerated }: RecipeCardProps) {
             transition={{ duration: 0.3, ease: 'easeOut' }}
             className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700/50"
           >
+            {savedToRecipes && (
+              <div className="mb-4">
+                <AlertBanner
+                  type="success"
+                  message="Recipe saved — find it on your Recipes page to merge into a grocery list."
+                  visible={savedToRecipes}
+                />
+              </div>
+            )}
             <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
               <ShoppingCart size={15} className="text-[#2d6a4f] dark:text-green-400" />
               Shopping list

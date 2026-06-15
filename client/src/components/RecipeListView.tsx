@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ChefHat, ChevronDown, BookOpen,
-  Check, Copy, Trash2, X, Loader2, AlertTriangle,
+  Check, Copy, Trash2, X, Loader2, AlertTriangle, Combine,
 } from 'lucide-react'
 import type { RecipeSummary, Ingredient } from '../types'
+import { AlertBanner } from './AlertBanner'
 
 type LoadStatus = 'loading' | 'ready' | 'error'
 type ItemState = { status: LoadStatus; items: Ingredient[] }
@@ -15,6 +16,7 @@ interface RecipeListViewProps {
   onRetry: () => void
   onDeleteRecipe: (id: string) => void
   fetchItems: (id: string) => Promise<Ingredient[]>
+  onMerge: (recipeIds: string[]) => Promise<boolean>
 }
 
 function itemLabel(item: Ingredient) {
@@ -25,10 +27,34 @@ function toText(dish: string, items: Ingredient[]) {
   return [dish, ...items.map(item => `- ${itemLabel(item)}`)].join('\n')
 }
 
-export function RecipeListView({ recipes, status, onRetry, onDeleteRecipe, fetchItems }: RecipeListViewProps) {
+export function RecipeListView({ recipes, status, onRetry, onDeleteRecipe, fetchItems, onMerge }: RecipeListViewProps) {
   const [openId, setOpenId] = useState<string | null>(null)
   const [copyState, setCopyState] = useState<{ id: string; ok: boolean } | null>(null)
   const [itemsById, setItemsById] = useState<Record<string, ItemState>>({})
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [merging, setMerging] = useState(false)
+  const [mergeResult, setMergeResult] = useState<'success' | 'error' | null>(null)
+
+  const toggleSelect = (id: string) => {
+    setMergeResult(null)
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  // Merges the selected recipes (needs at least two) into a new grocery list.
+  const handleMerge = async () => {
+    if (selected.size < 2 || merging) return
+    setMerging(true)
+    setMergeResult(null)
+    const ok = await onMerge([...selected])
+    setMerging(false)
+    setMergeResult(ok ? 'success' : 'error')
+    if (ok) setSelected(new Set())
+  }
 
   // Fetches a recipe's items (once), caches them, and returns them; throws on failure.
   const loadItems = async (id: string): Promise<Ingredient[]> => {
@@ -143,6 +169,37 @@ export function RecipeListView({ recipes, status, onRetry, onDeleteRecipe, fetch
         </span>
       </div>
 
+      {/* Merge bar: select recipes via their checkboxes, then merge into one grocery list. */}
+      <div className="mb-4 flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-white/80 dark:bg-gray-800/70 backdrop-blur-xl border border-gray-200/60 dark:border-gray-700/40">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          {selected.size === 0
+            ? 'Select recipes to merge into a grocery list'
+            : `${selected.size} selected`}
+        </p>
+        <button
+          onClick={handleMerge}
+          disabled={selected.size < 2 || merging}
+          className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold text-white bg-gradient-to-r from-[#1b5e38] to-[#2d6a4f] shadow-lg shadow-green-900/25 hover:shadow-green-900/35 transition-shadow disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+        >
+          {merging
+            ? <><Loader2 size={15} className="animate-spin" /> Merging…</>
+            : <><Combine size={15} /> Merge</>}
+        </button>
+      </div>
+
+      <div className="mb-4">
+        <AlertBanner
+          type="success"
+          message="Merged! You can view the new grocery list in the Grocery Lists tab now."
+          visible={mergeResult === 'success'}
+        />
+        <AlertBanner
+          type="error"
+          message="Couldn't merge the selected recipes. Please try again."
+          visible={mergeResult === 'error'}
+        />
+      </div>
+
       <div className="space-y-3">
         {recipes.map((recipe, idx) => {
           const isOpen = openId === recipe.id
@@ -167,6 +224,19 @@ export function RecipeListView({ recipes, status, onRetry, onDeleteRecipe, fetch
             >
               {/* Header row */}
               <div className="flex items-center px-5 py-4">
+                <button
+                  onClick={() => toggleSelect(recipe.id)}
+                  role="checkbox"
+                  aria-checked={selected.has(recipe.id)}
+                  title={selected.has(recipe.id) ? 'Deselect recipe' : 'Select to merge'}
+                  className={`mr-3 w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 transition-colors ${
+                    selected.has(recipe.id)
+                      ? 'bg-[#2d6a4f] border-[#2d6a4f] text-white'
+                      : 'border-gray-300 dark:border-gray-600 hover:border-[#2d6a4f] dark:hover:border-green-400'
+                  }`}
+                >
+                  {selected.has(recipe.id) && <Check size={13} />}
+                </button>
                 <button
                   onClick={() => toggle(recipe.id)}
                   className="flex items-center gap-3 min-w-0 flex-1 text-left"

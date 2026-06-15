@@ -5,6 +5,8 @@ import com.bytebite.server.dto.GroceryItemResponseDTO;
 import com.bytebite.server.dto.GroceryListCreateRequest;
 import com.bytebite.server.dto.GroceryListDetailDTO;
 import com.bytebite.server.dto.GroceryListSummaryDTO;
+import com.bytebite.server.dto.MergeListRequest;
+import com.bytebite.server.service.GroceryListMergeService;
 import com.bytebite.server.service.GroceryListService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -40,9 +42,11 @@ import java.util.UUID;
 public class GroceryListController {
 
     private final GroceryListService service;
+    private final GroceryListMergeService mergeService;
 
-    public GroceryListController(GroceryListService service) {
+    public GroceryListController(GroceryListService service, GroceryListMergeService mergeService) {
         this.service = service;
+        this.mergeService = mergeService;
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
@@ -97,6 +101,35 @@ public class GroceryListController {
         GroceryListDetailDTO created = service.create(userId, request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
+                .buildAndExpand(created.groceryListId())
+                .toUri();
+        return ResponseEntity.created(location).body(created);
+    }
+
+    @PostMapping(value = "/merge",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            summary = "Merge recipes into a new grocery list",
+            description = "Reads the selected recipes, asks the Gen AI service to deduplicate and sum their "
+                    + "ingredients, then persists the result as a new grocery list linked to those recipes.",
+            security = @SecurityRequirement(name = "bearerAuth"),
+            responses = {
+                    @ApiResponse(responseCode = "201", description = "Merged grocery list created"),
+                    @ApiResponse(responseCode = "400", description = "No recipes provided", content = @Content(schema = @Schema(implementation = Map.class))),
+                    @ApiResponse(responseCode = "401", description = "Missing, expired, or invalid JWT", content = @Content),
+                    @ApiResponse(responseCode = "404", description = "One or more recipes not found", content = @Content(schema = @Schema(implementation = Map.class))),
+                    @ApiResponse(responseCode = "422", description = "AI service returned no merged ingredients", content = @Content(schema = @Schema(implementation = Map.class))),
+                    @ApiResponse(responseCode = "502", description = "AI service rejected or failed the request", content = @Content(schema = @Schema(implementation = Map.class))),
+                    @ApiResponse(responseCode = "503", description = "AI service is unreachable", content = @Content(schema = @Schema(implementation = Map.class)))
+            }
+    )
+    public ResponseEntity<GroceryListDetailDTO> merge(
+            @Parameter(hidden = true) @RequestHeader("X-User-Id") UUID userId,
+            @RequestBody MergeListRequest request) {
+        GroceryListDetailDTO created = mergeService.merge(userId, request);
+        URI location = ServletUriComponentsBuilder.fromCurrentRequestUri()
+                .replacePath("/api/grocery-list/{id}")
                 .buildAndExpand(created.groceryListId())
                 .toUri();
         return ResponseEntity.created(location).body(created);

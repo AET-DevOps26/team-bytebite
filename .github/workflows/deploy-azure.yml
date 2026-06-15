@@ -68,6 +68,16 @@ jobs:
         working-directory: infra/terraform
         run: echo "public_ip=$(terraform output -raw public_ip)" >> "$GITHUB_OUTPUT"
 
+      # The VM is deallocated between deploys to save cost. Starting it is
+      # idempotent: it boots a stopped VM and is a no-op if already running.
+      # Without this, Ansible can't SSH into a powered-off host and the job fails.
+      - name: Ensure VM is running
+        working-directory: infra/terraform
+        run: |
+          rg="$(terraform output -raw resource_group_name)"
+          vm="$(terraform output -raw vm_name)"
+          az vm start --resource-group "$rg" --name "$vm"
+
       # Configure + deploy Ansible
       # terraform apply already wrote infra/ansible/inventory.ini + ssh_key.pem.
       - name: Set up Python

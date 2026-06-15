@@ -30,7 +30,10 @@ You are a specialized Grocery List Agent. Your sole task is to convert recipe te
 ## Task
 0. If the input contains narrative prose, stories, or blog content surrounding a recipe,
    ignore everything that is not part of the recipe itself. Extract only the ingredients.
-1. Parse the provided recipe or dish name for ingredients.
+1. If the input is a dish NAME with no ingredient list (e.g. "Chicken Curry"),
+   GENERATE the full set of ingredients a typical recipe for that dish requires.
+   If the input contains recipe text, EXTRACT the ingredients from it instead.
+   Never return an empty ingredient list for a valid dish.
 2. Convert ALL non-metric units to the metric system (grams or milliliters).
 3. If an ingredient is a "count" (e.g., "2 onions"), use "piece" or "unit" as the unit.
 4. If a quantity/unit is missing or vague ("salt to taste"), use "N/A" for those fields.
@@ -44,21 +47,28 @@ You are a specialized Grocery List Agent. Your sole task is to convert recipe te
 - Use decimal points instead of fractions (e.g., 0.5 instead of 1/2).
 
 ## Categorization
-Assign each ingredient a grocery store aisle category. Use one of the following:
-- Produce
-- Dairy & Eggs
-- Meat & Seafood
-- Bakery & Bread
-- Baking Needs
-- Canned & Jarred Goods
-- Dry Goods & Pasta
-- Condiments & Sauces
-- Spices & Herbs
-- Frozen Foods
-- Beverages
-- Snacks
-- International Foods
-- Other
+Assign each ingredient EXACTLY ONE category. You MUST output the category token verbatim
+from the list below — do not invent new categories, do not add "&", and do not pluralize.
+
+- Produce — fresh fruit, vegetables, fresh herbs, salad, mushrooms, garlic, onions, lemons.
+- Dairy — milk, cream, butter, cheese, yogurt, eggs, and plant-milk alternatives.
+- Meat — beef, pork, chicken, lamb, sausage, bacon, deli meat.
+- Seafood — fish, shrimp, prawns, mussels, squid, and other shellfish.
+- Bakery — bread, rolls, tortillas, buns, pastries, cakes.
+- Pantry — shelf-stable goods: dry pasta, rice, flour, sugar, oil, vinegar, canned/jarred
+  goods, beans, lentils, stock, sauces, condiments, ketchup, mustard, baking needs (yeast,
+  baking soda, cocoa), nuts, snacks, and international shelf-stable items (soy sauce, coconut milk).
+- Frozen — anything sold frozen: frozen vegetables, frozen fruit, ice cream, frozen fish.
+- Beverages — water, juice, soda, coffee, tea, wine, beer, spirits.
+- Spices — dried/ground spices and seasonings: salt, pepper, paprika, cinnamon, dried herbs, chili flakes.
+- Other — use ONLY when an ingredient genuinely fits none of the above.
+
+### Categorization rules
+- Pick the SINGLE best-fitting category for the ingredient's most common store location.
+- Prefer the form the recipe specifies: "fresh basil" -> Produce, "dried basil" -> Spices,
+  "fresh tomatoes" -> Produce, "canned tomatoes" -> Pantry, "frozen peas" -> Frozen.
+- "Other" is a last resort. Before using it, re-check whether the item fits Produce, Pantry, or Spices.
+- Be consistent: the same ingredient must always receive the same category.
 
 {dietary_section}
 
@@ -190,6 +200,9 @@ def create_chat_completion(provider: Provider, messages: list[dict[str, str]]):
     kwargs = {
         "model": LOGOS_MODEL if provider == "logos" else OPENAI_MODEL,
         "messages": messages,
+        # Low temperature keeps categorization deterministic so the same ingredient
+        # is not labelled differently across requests.
+        "temperature": 0,
     }
     if provider == "openai":
         kwargs["response_format"] = {"type": "json_object"}

@@ -9,7 +9,18 @@
 - name: Provision and deploy ByteBite
   hosts: bytebite
   become: true
-  gather_facts: true
+  # Implicit fact gathering runs before pre_tasks, so disable it and gather
+  # explicitly after waiting for SSH — the VM may have just been started from a
+  # deallocated state by CI and sshd may not be up yet.
+  gather_facts: false
+  pre_tasks:
+    - name: Wait for SSH to become available
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+      become: false
+
+    - name: Gather facts
+      ansible.builtin.setup:
   roles:
     - role: docker
     - role: deploy
