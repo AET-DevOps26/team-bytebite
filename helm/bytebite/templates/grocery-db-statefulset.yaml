@@ -18,6 +18,13 @@ spec:
         - name: grocery-db
           image: "{{ .Values.groceryDb.image.repository }}:{{ .Values.groceryDb.image.tag }}"
           imagePullPolicy: {{ .Values.groceryDb.image.pullPolicy }}
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
           ports:
             - containerPort: 5432
           env:
