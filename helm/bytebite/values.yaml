@@ -76,6 +76,12 @@ groceryDb:
   user: bytebite_grocery
   password: ""
 
+# Shared JWT signing/verification secret for user-service (signs) and
+# api-gateway (verifies). Must be >=32 chars. Leave empty to fall back to the
+# apps' built-in dev default; set via --set jwt.secret / a GitHub secret for real deploys.
+jwt:
+  secret: ""
+
 ingress:
   enabled: true
   className: "nginx"

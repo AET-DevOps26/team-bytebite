@@ -27,6 +27,10 @@ spec:
           ports:
             - containerPort: {{ .Values.groceryService.service.targetPort }}
           env:
+            # The app's dev default port is 8082; override it so it listens on
+            # the container/Service port (8080), matching the api-gateway route.
+            - name: SERVER_PORT
+              value: "{{ .Values.groceryService.service.targetPort }}"
             - name: GENAI_BASE_URL
               value: "http://genai-service:{{ .Values.genai.service.port }}"
             - name: SPRING_DATASOURCE_URL
