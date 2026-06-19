@@ -9,6 +9,15 @@ type Status = 'idle' | 'loading' | 'success' | 'error'
 type DietaryRestriction = 'Vegan' | 'Vegetarian' | 'Gluten Free' | 'Lactose Free'
 type LlmProvider = 'logos' | 'openai'
 
+// crypto.randomUUID() is only available in secure contexts (HTTPS/localhost); the
+// deployed app is served over plain HTTP, so fall back to a non-crypto id there.
+function generateId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
 const DIETARY_OPTIONS: DietaryRestriction[] = ['Vegan', 'Vegetarian', 'Gluten Free', 'Lactose Free']
 
 const CHIPS = [
@@ -83,7 +92,7 @@ export function RecipeCard({ token, onListGenerated }: RecipeCardProps) {
       setIngredients(data.ingredients)
       setStatus('success')
       const saved = await onListGenerated?.({
-        id: crypto.randomUUID(),
+        id: generateId(),
         dish: data.dish,
         createdAt: new Date().toISOString(),
         ingredients: data.ingredients,
