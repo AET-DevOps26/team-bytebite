@@ -66,5 +66,4 @@ jobs:
             --set genai.logosKey="${{ secrets.LOGOS_KEY }}" \
             --set genai.openaiApiKey="${{ secrets.OPENAI_API_KEY }}" \
             --set userDb.password="${{ secrets.USER_DB_PASSWORD }}" \
-            --set groceryDb.password="${{ secrets.GROCERY_DB_PASSWORD }}" \
-            --atomic
+            --set groceryDb.password="${{ secrets.GROCERY_DB_PASSWORD }}"
