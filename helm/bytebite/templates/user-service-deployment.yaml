@@ -27,6 +27,19 @@ spec:
           ports:
             - containerPort: {{ .Values.userService.service.targetPort }}
           env:
+            # The app's dev default port is 8083; override it so it listens on
+            # the container/Service port (8080), matching the api-gateway route.
+            - name: SERVER_PORT
+              value: "{{ .Values.userService.service.targetPort }}"
+            {{- if .Values.jwt.secret }}
+            # Shared JWT secret (signs tokens). Must match the api-gateway. Only
+            # injected when set; otherwise the app's built-in default applies.
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret
+                  key: jwt-secret
+            {{- end }}
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:postgresql://user-db:5432/{{ .Values.userDb.name }}"
             - name: SPRING_DATASOURCE_USERNAME

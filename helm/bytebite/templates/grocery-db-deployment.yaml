@@ -1,11 +1,14 @@
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: bytebite-grocery-db
   namespace: {{ .Values.namespace }}
 spec:
-  serviceName: grocery-db
   replicas: 1
+  # Ephemeral DB (emptyDir): recreate the pod rather than rolling, so two
+  # instances never run at once and each start gets a clean database.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: bytebite-grocery-db
@@ -18,6 +21,13 @@ spec:
         - name: grocery-db
           image: "{{ .Values.groceryDb.image.repository }}:{{ .Values.groceryDb.image.tag }}"
           imagePullPolicy: {{ .Values.groceryDb.image.pullPolicy }}
+          resources:
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
           ports:
             - containerPort: 5432
           env:
@@ -33,11 +43,7 @@ spec:
           volumeMounts:
             - name: grocery-db-data
               mountPath: /var/lib/postgresql/data
-  volumeClaimTemplates:
-    - metadata:
-        name: grocery-db-data
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        resources:
-          requests:
-            storage: 1Gi
+      volumes:
+        # Ephemeral storage: the database is recreated on every pod start.
+        - name: grocery-db-data
+          emptyDir: {}

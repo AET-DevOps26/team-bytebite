@@ -1,6 +1,7 @@
 name: Test, Build and Push Images
 
-# Runs tests and builds images on every branch. Only pushes to the registry on main.
+# Runs tests and builds images on every branch.
+# Pushes to the registry only on main, or on a manual workflow_dispatch run.
 on:
   push:
     branches:
@@ -93,7 +94,7 @@ jobs:
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.context }}/Dockerfile
-          push: ${{ github.ref == 'refs/heads/main' }}
+          push: ${{ github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
