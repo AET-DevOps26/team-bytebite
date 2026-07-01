@@ -133,6 +133,16 @@ Open http://localhost:8081
 
 Drop `--build` on subsequent starts if nothing has changed. To stop: `docker compose down`.
 
+#### Monitoring (Prometheus)
+
+`docker compose up` also starts a Prometheus instance that scrapes metrics from all
+backend services. The Spring services expose metrics at `/actuator/prometheus` (via
+Spring Boot Actuator + Micrometer) and `gen-ai` exposes them at `/metrics`.
+
+Open the Prometheus UI at http://localhost:9090 — check http://localhost:9090/targets
+to confirm every service is `UP`. The scrape configuration lives in
+[`monitoring/prometheus.yml`](monitoring/prometheus.yml).
+
 ---
 
 ### Kubernetes
