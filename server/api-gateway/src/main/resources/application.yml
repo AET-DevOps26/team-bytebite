@@ -38,6 +38,15 @@ spring:
           predicates:
             - Path=/api/auth/**,/api/users/**
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

@@ -120,6 +120,21 @@ services:
     depends_on:
       - api-gateway
 
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: bytebite-prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - api-gateway
+      - user-service
+      - grocery-service
+      - gen-ai
+
 volumes:
   user-db-data:
   grocery-db-data:
+  prometheus-data:
