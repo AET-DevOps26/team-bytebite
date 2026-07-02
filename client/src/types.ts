@@ -38,3 +38,8 @@ export type GroceryListSummary = { id: string; dish: string; createdAt: string; 
 
 // A grocery item with its server id + purchased state, for the lazily-loaded detail view
 export type GroceryItemDetail = { itemId: string; name: string; quantity: string; unit: string; category: string; purchased: boolean }
+
+// A form row shared by the create/edit modal for both recipes and grocery lists. Quantity is a
+// display string ('' or 'N/A' = unspecified). `purchased` is carried through untouched for grocery
+// lists (so surviving items keep their checkbox on save) and left undefined for recipes.
+export type EditableItem = { name: string; quantity: string; unit: string; category: string; purchased?: boolean }
