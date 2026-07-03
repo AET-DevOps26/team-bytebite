@@ -12,77 +12,13 @@ import type {
   GroceryList, ApiRecipe, ApiRecipeSummary, RecipeSummary, Ingredient,
   ApiGroceryList, ApiGroceryListSummary, GroceryListSummary, GroceryItemDetail, EditableItem,
 } from './types'
+import {
+  apiSummaryToRecipe, parseQuantity, toRecipeItemPayload, toGroceryItemPayload,
+  apiItemsToIngredients, apiSummaryToGroceryList, detailToGrocerySummary, apiItemsToGroceryDetail,
+} from './lib/mappers'
 
 type View = 'home' | 'grocery-lists' | 'recipes'
 type LoadStatus = 'loading' | 'ready' | 'error'
-
-function apiSummaryToRecipe(summary: ApiRecipeSummary): RecipeSummary {
-  return { id: summary.recipeId, dish: summary.name, createdAt: summary.createdAt }
-}
-
-// The API uses the DB's numeric quantity (null = unspecified); the client keeps a display
-// string, so convert at the API boundary.
-function formatQuantity(quantity: number | null): string {
-  return quantity === null ? 'N/A' : String(quantity)
-}
-
-function parseQuantity(quantity: string): number | null {
-  const trimmed = quantity?.trim()
-  if (!trimmed || trimmed === 'N/A') return null
-  const n = Number(trimmed)
-  return Number.isFinite(n) ? n : null
-}
-
-// Maps a form row to the API item payload. Recipes omit `purchased`; grocery lists send the
-// row's current flag (undefined → false for newly added items) so surviving items stay picked up.
-function toRecipeItemPayload(item: EditableItem) {
-  return { name: item.name, quantity: parseQuantity(item.quantity), unit: item.unit, category: item.category }
-}
-
-function toGroceryItemPayload(item: EditableItem) {
-  return { ...toRecipeItemPayload(item), purchased: item.purchased ?? false }
-}
-
-function apiItemsToIngredients(recipe: ApiRecipe): Ingredient[] {
-  return recipe.items.map(item => ({
-    name: item.name,
-    quantity: formatQuantity(item.quantity),
-    unit: item.unit,
-    category: item.category,
-  }))
-}
-
-function apiSummaryToGroceryList(summary: ApiGroceryListSummary): GroceryListSummary {
-  return {
-    id: summary.groceryListId,
-    dish: summary.name,
-    createdAt: summary.createdAt,
-    itemCount: summary.itemCount,
-    purchasedCount: summary.purchasedCount,
-  }
-}
-
-// POST/PUT return the full detail; derive the summary counts the list view needs from it.
-function detailToGrocerySummary(detail: ApiGroceryList): GroceryListSummary {
-  return {
-    id: detail.groceryListId,
-    dish: detail.name,
-    createdAt: detail.createdAt,
-    itemCount: detail.items.length,
-    purchasedCount: detail.items.filter(item => item.purchased).length,
-  }
-}
-
-function apiItemsToGroceryDetail(list: ApiGroceryList): GroceryItemDetail[] {
-  return list.items.map(item => ({
-    itemId: item.itemId,
-    name: item.name,
-    quantity: formatQuantity(item.quantity),
-    unit: item.unit,
-    category: item.category,
-    purchased: item.purchased,
-  }))
-}
 
 function getInitialDark(): boolean {
   const stored = localStorage.getItem('bytebite-dark')
