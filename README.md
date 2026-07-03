@@ -137,8 +137,9 @@ cd server/grocery-service && ./mvnw test
 ```
 
 GitHub Actions runs the same Maven test matrix in `Test, Build and Push Images`
-before building/pushing images. The Kubernetes and Azure deployment workflows also
-run the Java test matrix before manual or automatic deployment jobs proceed.
+before building/pushing images. Automatic Kubernetes and Azure deployments are
+triggered only after that workflow succeeds; manual deployment workflow runs do
+not rerun the Java tests.
 
 ---
 
