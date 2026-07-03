@@ -5,6 +5,14 @@ client:
   service:
     type: LoadBalancer
 
+monitoring:
+  prometheus:
+    service:
+      type: LoadBalancer
+  grafana:
+    service:
+      type: LoadBalancer
+
 userDb:
   password: bytebite_user_password
 

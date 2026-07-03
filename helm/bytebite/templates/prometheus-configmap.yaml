@@ -1,0 +1,41 @@
+{{- if .Values.monitoring.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bytebite-prometheus-config
+  namespace: {{ .Values.namespace }}
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: {{ .Values.monitoring.prometheus.scrapeInterval }}
+
+    scrape_configs:
+      - job_name: api-gateway
+        metrics_path: /actuator/prometheus
+        static_configs:
+          - targets: ["api-gateway-service:{{ .Values.apiGateway.service.port }}"]
+
+      - job_name: user-service
+        metrics_path: /actuator/prometheus
+        static_configs:
+          - targets: ["user-service:{{ .Values.userService.service.port }}"]
+
+      - job_name: grocery-service
+        metrics_path: /actuator/prometheus
+        static_configs:
+          - targets: ["grocery-service:{{ .Values.groceryService.service.port }}"]
+
+      - job_name: gen-ai
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["genai-service:{{ .Values.genai.service.port }}"]
+
+      - job_name: prometheus
+        static_configs:
+          - targets: ["localhost:9090"]
+
+      - job_name: grafana
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["grafana-service:{{ .Values.monitoring.grafana.service.port }}"]
+{{- end }}

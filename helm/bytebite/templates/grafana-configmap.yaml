@@ -1,0 +1,32 @@
+{{- if .Values.monitoring.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bytebite-grafana-provisioning
+  namespace: {{ .Values.namespace }}
+data:
+  datasource.yml: |
+    apiVersion: 1
+
+    datasources:
+      - name: ByteBite Prometheus
+        uid: bytebite-prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus-service:{{ .Values.monitoring.prometheus.service.port }}
+        isDefault: true
+        editable: true
+  dashboards.yml: |
+    apiVersion: 1
+
+    providers:
+      - name: ByteBite
+        orgId: 1
+        folder: ByteBite
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 30
+        allowUiUpdates: true
+        options:
+          path: /etc/grafana/dashboards
+{{- end }}

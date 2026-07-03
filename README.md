@@ -166,6 +166,12 @@ helm uninstall bytebite --namespace team-bytebite  # To take down later
 
 Open http://localhost:80
 
+The local Helm values also expose monitoring services when supported by your
+local cluster:
+
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3000 (`admin` / `bytebite`)
+
 #### Kubernetes Deployment to the AET cluster
 
 Prerequisite: The `team-bytebite` namespace must exist in the cluster.
@@ -186,3 +192,5 @@ helm uninstall bytebite --namespace team-bytebite  # To take down later
 ```
 
 The app is available at https://team-bytebite.stud.k8s.aet.cit.tum.de
+Grafana is available at https://team-bytebite.stud.k8s.aet.cit.tum.de/grafana
+when `monitoring.enabled` and `monitoring.grafana.ingress.enabled` are true.

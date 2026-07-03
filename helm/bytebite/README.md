@@ -1,6 +1,7 @@
 # ByteBite Helm Chart
 
-Deploys the ByteBite application (client, api-gateway, user-service, grocery-service, gen-ai) to Kubernetes.
+Deploys the ByteBite application (client, api-gateway, user-service, grocery-service, gen-ai)
+and the optional monitoring stack (Prometheus + Grafana) to Kubernetes.
 
 ## Prerequisites
 
@@ -29,6 +30,11 @@ helm uninstall bytebite --namespace team-bytebite
 | `ingress.tls` | Enable TLS via cert-manager | `true` |
 | `genai.logosKey` | Logos API key for the default gen-ai provider | `""` |
 | `genai.openaiApiKey` | OpenAI API key for the selectable OpenAI provider | `""` |
+| `monitoring.enabled` | Deploy Prometheus and Grafana | `true` |
+| `monitoring.grafana.adminUser` | Grafana admin username | `admin` |
+| `monitoring.grafana.adminPassword` | Grafana admin password | `bytebite` |
+| `monitoring.grafana.ingress.enabled` | Expose Grafana under the main ingress host | `true` |
+| `monitoring.grafana.ingress.path` | Grafana ingress path | `/grafana` |
 | `client.image.tag` | Client image tag | `latest` |
 | `apiGateway.image.tag` | API gateway image tag | `latest` |
 | `userService.image.tag` | User service image tag | `latest` |
