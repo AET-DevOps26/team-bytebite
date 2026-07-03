@@ -12,6 +12,12 @@
     dest: "{{ app_dir }}/compose.yaml"
     mode: "0644"
 
+- name: Ensure Prometheus monitoring subdirectory exists
+  ansible.builtin.file:
+    path: "{{ app_dir }}/monitoring"
+    state: directory
+    mode: "0755"
+
 - name: Copy Prometheus scrape config to the VM
   # compose.yaml bind-mounts ./monitoring/prometheus.yml into the prometheus
   # service; without this file the container can't start.
