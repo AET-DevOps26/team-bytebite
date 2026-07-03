@@ -120,6 +120,28 @@ The UI includes the User Service, Grocery Service, and Gen AI Service OpenAPI de
 
 ---
 
+### Testing
+
+The Java server components have unit and lightweight integration tests:
+
+- `api-gateway`: JWT gateway filter behavior, protected-route rejection, and trusted `X-User-*` header injection.
+- `user-service`: registration/login validation, password hashing behavior, current-user lookup, and JWT signing/verification.
+- `grocery-service`: grocery item mapping, list create/update behavior, merge behavior around Gen AI responses/failures, and controller HTTP behavior.
+
+Run them locally with:
+
+```bash
+cd server/api-gateway && ./mvnw test
+cd server/user-service && ./mvnw test
+cd server/grocery-service && ./mvnw test
+```
+
+GitHub Actions runs the same Maven test matrix in `Test, Build and Push Images`
+before building/pushing images. The Kubernetes and Azure deployment workflows also
+run the Java test matrix before manual or automatic deployment jobs proceed.
+
+---
+
 ### Docker
 
 Requires Docker Desktop running.
