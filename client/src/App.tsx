@@ -10,7 +10,7 @@ import { GroceryListView } from './components/GroceryListView'
 import { RecipeListView } from './components/RecipeListView'
 import type {
   GroceryList, ApiRecipe, ApiRecipeSummary, RecipeSummary, Ingredient,
-  ApiGroceryList, ApiGroceryListSummary, GroceryListSummary, GroceryItemDetail,
+  ApiGroceryList, ApiGroceryListSummary, GroceryListSummary, GroceryItemDetail, EditableItem,
 } from './types'
 
 type View = 'home' | 'grocery-lists' | 'recipes'
@@ -31,6 +31,16 @@ function parseQuantity(quantity: string): number | null {
   if (!trimmed || trimmed === 'N/A') return null
   const n = Number(trimmed)
   return Number.isFinite(n) ? n : null
+}
+
+// Maps a form row to the API item payload. Recipes omit `purchased`; grocery lists send the
+// row's current flag (undefined → false for newly added items) so surviving items stay picked up.
+function toRecipeItemPayload(item: EditableItem) {
+  return { name: item.name, quantity: parseQuantity(item.quantity), unit: item.unit, category: item.category }
+}
+
+function toGroceryItemPayload(item: EditableItem) {
+  return { ...toRecipeItemPayload(item), purchased: item.purchased ?? false }
 }
 
 function apiItemsToIngredients(recipe: ApiRecipe): Ingredient[] {
@@ -238,6 +248,44 @@ function App() {
       .catch(() => setRecipes(previous))
   }
 
+  // Creates a recipe from the manual editor and prepends it to the list. Returns false on failure
+  // so the form can keep itself open and surface an error.
+  const handleCreateRecipe = async (name: string, items: EditableItem[]): Promise<boolean> => {
+    if (!token) return false
+    try {
+      const response = await fetch('/api/recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name, items: items.map(toRecipeItemPayload) }),
+      })
+      if (!response.ok) throw new Error('Failed to create recipe')
+      const saved = await response.json() as ApiRecipe
+      setRecipes(prev => [apiSummaryToRecipe(saved), ...prev])
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  // Replaces a recipe's name and items. Updates the summary in place and returns the fresh items
+  // so the Recipes view can refresh its cached detail; returns null on failure.
+  const handleUpdateRecipe = async (id: string, name: string, items: EditableItem[]): Promise<Ingredient[] | null> => {
+    if (!token) return null
+    try {
+      const response = await fetch(`/api/recipes/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name, items: items.map(toRecipeItemPayload) }),
+      })
+      if (!response.ok) throw new Error('Failed to update recipe')
+      const saved = await response.json() as ApiRecipe
+      setRecipes(prev => prev.map(recipe => (recipe.id === id ? apiSummaryToRecipe(saved) : recipe)))
+      return apiItemsToIngredients(saved)
+    } catch {
+      return null
+    }
+  }
+
   // Merges the selected recipes into a new grocery list server-side and prepends it to the
   // history. Returns false on failure so the Recipes view can surface an error to the user.
   const handleMergeRecipes = async (recipeIds: string[]): Promise<boolean> => {
@@ -293,6 +341,43 @@ function App() {
         if (!response.ok && response.status !== 404) throw new Error('Failed to delete grocery list')
       })
       .catch(() => setGroceryLists(previous))
+  }
+
+  // Creates a grocery list from the manual editor and prepends it to the history.
+  const handleCreateList = async (name: string, items: EditableItem[]): Promise<boolean> => {
+    if (!token) return false
+    try {
+      const response = await fetch('/api/grocery-list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name, items: items.map(toGroceryItemPayload) }),
+      })
+      if (!response.ok) throw new Error('Failed to create grocery list')
+      const saved = await response.json() as ApiGroceryList
+      setGroceryLists(prev => [detailToGrocerySummary(saved), ...prev])
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  // Replaces a grocery list's name and items. The PUT reassigns item ids, so we return the fresh
+  // items for the view to reseed its cache; the summary counts are recomputed from the response.
+  const handleUpdateList = async (id: string, name: string, items: EditableItem[]): Promise<GroceryItemDetail[] | null> => {
+    if (!token) return null
+    try {
+      const response = await fetch(`/api/grocery-list/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name, items: items.map(toGroceryItemPayload) }),
+      })
+      if (!response.ok) throw new Error('Failed to update grocery list')
+      const saved = await response.json() as ApiGroceryList
+      setGroceryLists(prev => prev.map(list => (list.id === id ? detailToGrocerySummary(saved) : list)))
+      return apiItemsToGroceryDetail(saved)
+    } catch {
+      return null
+    }
   }
 
   if (!token || !user) {
@@ -356,6 +441,8 @@ function App() {
                   onRetry={() => loadGroceryLists(token)}
                   onToggleItem={handleToggleGroceryItem}
                   onDeleteList={handleDeleteList}
+                  onCreateList={handleCreateList}
+                  onUpdateList={handleUpdateList}
                   fetchItems={fetchGroceryListItems}
                 />
               </motion.div>
@@ -372,6 +459,8 @@ function App() {
                   status={recipesStatus}
                   onRetry={() => loadRecipes(token)}
                   onDeleteRecipe={handleDeleteRecipe}
+                  onCreateRecipe={handleCreateRecipe}
+                  onUpdateRecipe={handleUpdateRecipe}
                   fetchItems={fetchRecipeItems}
                   onMerge={handleMergeRecipes}
                 />
