@@ -41,9 +41,13 @@ services:
     container_name: bytebite-gen-ai
     expose:
       - "8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       LOGOS_KEY: ${LOGOS_KEY}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      LM_STUDIO_BASE_URL: ${LM_STUDIO_BASE_URL:-http://host.docker.internal:1234/v1}
+      LM_STUDIO_MODEL: ${LM_STUDIO_MODEL:-local-model}
 
 
   user-service:

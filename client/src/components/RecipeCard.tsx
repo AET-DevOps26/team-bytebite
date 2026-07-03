@@ -2,12 +2,11 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChefHat, ShoppingCart, ArrowRight, Loader2, AlertTriangle } from 'lucide-react'
 import { AlertBanner } from './AlertBanner'
-import type { Ingredient, GroceryList } from '../types'
+import type { Ingredient, GroceryList, LlmProvider } from '../types'
 
 type Status = 'idle' | 'loading' | 'success' | 'error'
 
 type DietaryRestriction = 'Vegan' | 'Vegetarian' | 'Gluten Free' | 'Lactose Free'
-type LlmProvider = 'logos' | 'openai'
 
 // crypto.randomUUID() is only available in secure contexts (HTTPS/localhost); the
 // deployed app is served over plain HTTP, so fall back to a non-crypto id there.
@@ -37,18 +36,20 @@ const PLACEHOLDERS = [
 
 interface RecipeCardProps {
   token: string
+  llmProvider: LlmProvider
+  onLlmProviderChange: (provider: LlmProvider) => void
   onListGenerated?: (list: GroceryList) => Promise<boolean>
 }
 
-export function RecipeCard({ token, onListGenerated }: RecipeCardProps) {
+export function RecipeCard({ token, llmProvider, onLlmProviderChange, onListGenerated }: RecipeCardProps) {
   const [input, setInput] = useState('')
   const [validationError, setValidationError] = useState('')
   const [status, setStatus] = useState<Status>('idle')
   const [ingredients, setIngredients] = useState<Ingredient[]>([])
   const [placeholderIdx, setPlaceholderIdx] = useState(0)
   const [dietaryRestrictions, setDietaryRestrictions] = useState<DietaryRestriction[]>([])
-  const [llmProvider, setLlmProvider] = useState<LlmProvider>('logos')
   const [savedToRecipes, setSavedToRecipes] = useState(false)
+  const [note, setNote] = useState<string | null>(null)
 
   useEffect(() => {
     if (input) return
@@ -78,6 +79,7 @@ export function RecipeCard({ token, onListGenerated }: RecipeCardProps) {
     setStatus('loading')
     setIngredients([])
     setSavedToRecipes(false)
+    setNote(null)
     try {
       const response = await fetch('/api/recipes/generate', {
         method: 'POST',
@@ -88,8 +90,9 @@ export function RecipeCard({ token, onListGenerated }: RecipeCardProps) {
         body: JSON.stringify({ dish: trimmed, dietaryRestrictions, llmProvider }),
       })
       if (!response.ok) throw new Error('Request failed')
-      const data = await response.json() as { dish: string; ingredients: Ingredient[] }
+      const data = await response.json() as { dish: string; ingredients: Ingredient[]; note?: string | null }
       setIngredients(data.ingredients)
+      setNote(data.note ?? null)
       setStatus('success')
       const saved = await onListGenerated?.({
         id: generateId(),
@@ -191,28 +194,36 @@ export function RecipeCard({ token, onListGenerated }: RecipeCardProps) {
           <div>
             <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">LLM provider</p>
             <p className="text-xs text-gray-400 dark:text-gray-500">
-              {llmProvider === 'logos' ? 'Logos is selected' : 'OpenAI is selected'}
+              {llmProvider === 'logos' ? 'Logos is selected' : llmProvider === 'openai' ? 'OpenAI is selected' : 'Local (LM Studio) is selected'}
             </p>
           </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={llmProvider === 'openai'}
-            onClick={() => setLlmProvider(provider => provider === 'logos' ? 'openai' : 'logos')}
-            className="relative grid h-9 w-32 grid-cols-2 items-center rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-1 text-xs font-semibold text-gray-500 dark:text-gray-400 shadow-sm transition-colors"
+          <div
+            role="radiogroup"
+            aria-label="LLM provider"
+            className="relative grid h-9 w-48 grid-cols-3 items-center rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-1 text-xs font-semibold text-gray-500 dark:text-gray-400 shadow-sm"
           >
             <span
-              className={`absolute left-1 inset-y-1 w-[calc(50%-0.25rem)] rounded-full bg-[#2d6a4f] shadow-sm transition-transform ${
-                llmProvider === 'openai' ? 'translate-x-full' : 'translate-x-0'
-              }`}
+              className="absolute inset-y-1 left-1 w-[calc(33.333%-0.25rem)] rounded-full bg-[#2d6a4f] shadow-sm transition-transform"
+              style={{
+                transform:
+                  llmProvider === 'logos' ? 'translateX(0%)' :
+                  llmProvider === 'openai' ? 'translateX(100%)' :
+                  'translateX(200%)',
+              }}
             />
-            <span className={`relative z-10 text-center transition-colors ${llmProvider === 'logos' ? 'text-white' : ''}`}>
-              Logos
-            </span>
-            <span className={`relative z-10 text-center transition-colors ${llmProvider === 'openai' ? 'text-white' : ''}`}>
-              OpenAI
-            </span>
-          </button>
+            {(['logos', 'openai', 'local'] as const).map(provider => (
+              <button
+                key={provider}
+                type="button"
+                role="radio"
+                aria-checked={llmProvider === provider}
+                onClick={() => onLlmProviderChange(provider)}
+                className={`relative z-10 text-center transition-colors ${llmProvider === provider ? 'text-white' : ''}`}
+              >
+                {provider === 'logos' ? 'Logos' : provider === 'openai' ? 'OpenAI' : 'Local'}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Validation alert */}
@@ -264,6 +275,11 @@ export function RecipeCard({ token, onListGenerated }: RecipeCardProps) {
             transition={{ duration: 0.3, ease: 'easeOut' }}
             className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700/50"
           >
+            {note && (
+              <div className="mb-4">
+                <AlertBanner type="info" message={note} visible={!!note} />
+              </div>
+            )}
             {savedToRecipes && (
               <div className="mb-4">
                 <AlertBanner

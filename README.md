@@ -72,7 +72,7 @@ Each service has its own detailed setup instructions in its respective directory
 
 Requires Java 21, Node 22, and Python 3.12. Each service runs in its own terminal.
 
-**1. Gen-AI** (port 8000) — create `gen-ai/.env` with `LOGOS_KEY=...`; add `OPENAI_API_KEY=sk-...` if you want to use the OpenAI switch
+**1. Gen-AI** (port 8000) — create `gen-ai/.env` with `LOGOS_KEY=...`; add `OPENAI_API_KEY=sk-...` if you want to use the OpenAI switch. A local, offline option via [LM Studio](https://lmstudio.ai/) is also available — see `gen-ai/README.md`.
 ```bash
 cd gen-ai
 python -m venv .venv
