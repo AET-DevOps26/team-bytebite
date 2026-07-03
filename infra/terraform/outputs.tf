@@ -1,5 +1,5 @@
 output "public_ip" {
-  description = "Public IP of the VM. The app is served at http://<public_ip>:8081."
+  description = "Public IP of the VM. The app is served at http://<public_ip>:8081 and Grafana at http://<public_ip>:3000."
   value       = azurerm_public_ip.main.ip_address
 }
 

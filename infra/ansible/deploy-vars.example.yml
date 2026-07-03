@@ -14,3 +14,5 @@ ghcr_token: "ghp_..."                     # a PAT / token with read:packages
 
 # image_tag: latest                       # or a commit SHA
 # registry: ghcr.io/aet-devops26/team-bytebite
+# grafana_admin_user: admin
+# grafana_admin_password: "change-me"

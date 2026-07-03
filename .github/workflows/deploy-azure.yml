@@ -118,4 +118,7 @@ jobs:
 
       - name: Summary
         if: success()
-        run: echo "Deployed to http://${{ steps.tf.outputs.public_ip }}:8081" >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          echo "App: http://${{ steps.tf.outputs.public_ip }}:8081" >> "$GITHUB_STEP_SUMMARY"
+          echo "Prometheus: http://${{ steps.tf.outputs.public_ip }}:9090" >> "$GITHUB_STEP_SUMMARY"
+          echo "Grafana: http://${{ steps.tf.outputs.public_ip }}:3000" >> "$GITHUB_STEP_SUMMARY"

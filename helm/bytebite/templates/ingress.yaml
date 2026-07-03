@@ -34,4 +34,13 @@ spec:
                 name: api-gateway-service
                 port:
                   number: {{ .Values.apiGateway.service.port }}
+          {{- if and .Values.monitoring.enabled .Values.monitoring.grafana.ingress.enabled }}
+          - path: {{ .Values.monitoring.grafana.ingress.path }}
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana-service
+                port:
+                  number: {{ .Values.monitoring.grafana.service.port }}
+          {{- end }}
 {{- end }}

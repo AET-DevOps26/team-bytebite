@@ -12,13 +12,20 @@
     dest: "{{ app_dir }}/compose.yaml"
     mode: "0644"
 
-- name: Copy Prometheus scrape config to the VM
-  # compose.yaml bind-mounts ./monitoring/prometheus.yml into the prometheus
-  # service; without this file the container can't start.
+- name: Ensure the monitoring directory exists
+  ansible.builtin.file:
+    path: "{{ app_dir }}/monitoring"
+    state: directory
+    mode: "0755"
+
+- name: Copy monitoring config to the VM
+  # compose.yaml bind-mounts the Prometheus config and Grafana provisioning files;
+  # without these files the monitoring containers can't start usefully.
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../../monitoring/prometheus.yml"
-    dest: "{{ app_dir }}/monitoring/prometheus.yml"
+    src: "{{ playbook_dir }}/../../monitoring/"
+    dest: "{{ app_dir }}/monitoring/"
     mode: "0644"
+    directory_mode: "0755"
 
 - name: Render the .env file
   ansible.builtin.template:
