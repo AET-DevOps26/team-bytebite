@@ -3,16 +3,16 @@ locals {
   ssh_public_key = var.ssh_public_key != "" ? var.ssh_public_key : tls_private_key.vm[0].public_key_openssh
 
   # Ports the Compose stack publishes (compose.yaml) plus SSH for the deploy workflow.
-  # Only client (8081) and api-gateway (8080) are published; gen-ai and the DBs are
-  # internal to the Compose network.
-  # NOTE: Prometheus (9090) has no authentication. It is exposed here for the
-  # dev-stage only; do not carry this rule into a production environment without
-  # putting auth / an SSH tunnel in front of it.
+  # gen-ai and the DBs are internal to the Compose network.
+  # NOTE: Prometheus (9090) has no authentication, and Grafana (3000) uses basic
+  # app credentials. These are exposed here for the dev-stage only; do not carry
+  # these rules into production without putting auth / an SSH tunnel in front of them.
   inbound_ports = {
     ssh         = { priority = 100, port = "22" }
     client      = { priority = 110, port = "8081" }
     api_gateway = { priority = 120, port = "8080" }
     prometheus  = { priority = 130, port = "9090" }
+    grafana     = { priority = 140, port = "3000" }
   }
 }
 

@@ -134,7 +134,25 @@ services:
       - grocery-service
       - gen-ai
 
+  grafana:
+    image: grafana/grafana:11.2.2
+    container_name: bytebite-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-bytebite}
+      GF_USERS_DEFAULT_THEME: light
+      GF_METRICS_ENABLED: "true"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
 volumes:
   user-db-data:
   grocery-db-data:
   prometheus-data:
+  grafana-data:

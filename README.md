@@ -133,15 +133,21 @@ Open http://localhost:8081
 
 Drop `--build` on subsequent starts if nothing has changed. To stop: `docker compose down`.
 
-#### Monitoring (Prometheus)
+#### Monitoring (Prometheus + Grafana)
 
-`docker compose up` also starts a Prometheus instance that scrapes metrics from all
-backend services. The Spring services expose metrics at `/actuator/prometheus` (via
-Spring Boot Actuator + Micrometer) and `gen-ai` exposes them at `/metrics`.
+`docker compose up` also starts Prometheus and Grafana. Prometheus scrapes metrics
+from all backend services. The Spring services expose metrics at
+`/actuator/prometheus` (via Spring Boot Actuator + Micrometer) and `gen-ai` exposes
+them at `/metrics`.
 
 Open the Prometheus UI at http://localhost:9090 — check http://localhost:9090/targets
 to confirm every service is `UP`. The scrape configuration lives in
 [`monitoring/prometheus.yml`](monitoring/prometheus.yml).
+
+Open Grafana at http://localhost:3000 and log in with `admin` / `bytebite` unless
+you override `GRAFANA_ADMIN_USER` and `GRAFANA_ADMIN_PASSWORD`. Grafana is
+provisioned with the Prometheus datasource and a `ByteBite / ByteBite Overview`
+dashboard from [`monitoring/grafana`](monitoring/grafana).
 
 ---
 

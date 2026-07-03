@@ -15,7 +15,7 @@ terraform apply  ──▶  inventory.ini + ssh_key.pem  ──▶  ansible-play
 | Role | Does |
 |------|------|
 | `docker` | Installs Docker Engine + the Compose v2 plugin from Docker's official apt repo; enables the service; adds the deploy user to the `docker` group |
-| `deploy` | Copies the repo-root compose file (`compose_file`, default `compose.yaml`) and a rendered `.env` to `/opt/bytebite`, logs into GHCR, and runs `docker compose up -d --pull=always --no-build` (pulls all 7 images from GHCR; never builds on the VM) |
+| `deploy` | Copies the repo-root compose file (`compose_file`, default `compose.yaml`), monitoring config, and a rendered `.env` to `/opt/bytebite`, logs into GHCR, and runs `docker compose up -d --pull=always --no-build` (pulls all application images from GHCR; never builds on the VM) |
 
 The CI workflow [`deploy.yml`](../../.github/workflows/deploy.yml) runs Terraform and then this same
 playbook in one job, on every green build of `main`.
@@ -63,7 +63,10 @@ Defaults live in `group_vars/bytebite.yml`; override per-run with `-e` / `-e @de
 | `image_tag` | `latest` | Or a commit SHA |
 | `registry` | `ghcr.io/aet-devops26/team-bytebite` | Matches `compose.yaml` |
 | `ghcr_username` / `ghcr_token` | `""` | GHCR login (required — the images are private). Login is skipped only when the token is empty |
+| `grafana_admin_user` | `admin` | Rendered to `GRAFANA_ADMIN_USER` for the Grafana container |
+| `grafana_admin_password` | `bytebite` | Rendered to `GRAFANA_ADMIN_PASSWORD`; override for shared or public VMs |
 | `app_dir` | `/opt/bytebite` | Where the compose file + .env land on the VM |
 | `compose_file` | `compose.yaml` | Repo-root compose to deploy (full microservice stack; pulled `--no-build`) |
 
-After a deploy, the app is at `http://<public_ip>:8081`.
+After a deploy, the app is at `http://<public_ip>:8081`, Prometheus is at
+`http://<public_ip>:9090`, and Grafana is at `http://<public_ip>:3000`.

@@ -12,3 +12,6 @@ image_tag: "latest"
 
 ghcr_username: ""
 ghcr_token: ""
+
+grafana_admin_user: admin
+grafana_admin_password: bytebite
