@@ -18,6 +18,8 @@ spec:
         - name: prometheus
           image: "{{ .Values.monitoring.prometheus.image.repository }}:{{ .Values.monitoring.prometheus.image.tag }}"
           imagePullPolicy: {{ .Values.monitoring.prometheus.image.pullPolicy }}
+          resources:
+            {{- toYaml .Values.monitoring.prometheus.resources | nindent 12 }}
           args:
             - --config.file=/etc/prometheus/prometheus.yml
             - --storage.tsdb.path=/prometheus
