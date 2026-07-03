@@ -18,6 +18,8 @@ spec:
         - name: grafana
           image: "{{ .Values.monitoring.grafana.image.repository }}:{{ .Values.monitoring.grafana.image.tag }}"
           imagePullPolicy: {{ .Values.monitoring.grafana.image.pullPolicy }}
+          resources:
+            {{- toYaml .Values.monitoring.grafana.resources | nindent 12 }}
           ports:
             - containerPort: {{ .Values.monitoring.grafana.service.targetPort }}
           env:
