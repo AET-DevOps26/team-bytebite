@@ -219,10 +219,10 @@ def parse_json_content(content: str | None) -> dict:
 
     try:
         return json.loads(content)
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as e:
         match = re.search(r"\{.*\}", content, re.DOTALL)
         if not match:
-            raise
+            raise ValueError(f"LLM response was not valid JSON: {e}") from None
         return json.loads(match.group(0))
 
 
