@@ -53,13 +53,33 @@ jobs:
       - name: Run tests
         run: cd client && npm test
 
+  test-gen-ai:
+    name: Run Gen-AI Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: gen-ai/requirements*.txt
+
+      - name: Install dependencies
+        run: pip install -r gen-ai/requirements-dev.txt
+
+      - name: Run tests with pytest
+        run: pytest gen-ai
+
   test-gatekeeper:
     name: All Tests Passed
-    needs: [test, test-client]
+    needs: [test, test-client, test-gen-ai]
     runs-on: ubuntu-latest
     steps:
       - name: Success Gate
-        run: echo "All server and client tests passed successfully!"
+        run: echo "All server, client, and gen-ai tests passed successfully!"
 
   build:
     name: Build ${{ matrix.image }}
