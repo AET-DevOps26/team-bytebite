@@ -203,7 +203,7 @@ export function RecipeCard({ token, llmProvider, onLlmProviderChange, onListGene
             className="relative grid h-9 w-48 grid-cols-3 items-center rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-1 text-xs font-semibold text-gray-500 dark:text-gray-400 shadow-sm"
           >
             <span
-              className="absolute inset-y-1 left-1 w-[calc(33.333%-0.25rem)] rounded-full bg-[#2d6a4f] shadow-sm transition-transform"
+              className="col-start-1 row-start-1 h-7 rounded-full bg-[#2d6a4f] shadow-sm transition-transform"
               style={{
                 transform:
                   llmProvider === 'logos' ? 'translateX(0%)' :
@@ -211,14 +211,15 @@ export function RecipeCard({ token, llmProvider, onLlmProviderChange, onListGene
                   'translateX(200%)',
               }}
             />
-            {(['logos', 'openai', 'local'] as const).map(provider => (
+            {(['logos', 'openai', 'local'] as const).map((provider, index) => (
               <button
                 key={provider}
                 type="button"
                 role="radio"
                 aria-checked={llmProvider === provider}
                 onClick={() => onLlmProviderChange(provider)}
-                className={`relative z-10 text-center transition-colors ${llmProvider === provider ? 'text-white' : ''}`}
+                style={{ gridColumnStart: index + 1, gridRowStart: 1 }}
+                className={`relative z-10 flex h-full items-center justify-center text-center transition-colors ${llmProvider === provider ? 'text-white' : ''}`}
               >
                 {provider === 'logos' ? 'Logos' : provider === 'openai' ? 'OpenAI' : 'Local'}
               </button>
