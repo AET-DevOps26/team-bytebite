@@ -52,11 +52,13 @@ export function RecipeCard({ token, onListGenerated }: RecipeCardProps) {
   const [savedToRecipes, setSavedToRecipes] = useState(false)
 
   useEffect(() => {
-    fetch('/api/recipes/providers')
+    fetch('/api/recipes/providers', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
       .then(response => (response.ok ? response.json() : { openaiAvailable: false }))
       .then((data: { openaiAvailable: boolean }) => setOpenaiAvailable(data.openaiAvailable))
       .catch(() => setOpenaiAvailable(false))
-  }, [])
+  }, [token])
 
   useEffect(() => {
     if (!openaiAvailable && llmProvider === 'openai') setLlmProvider('logos')
