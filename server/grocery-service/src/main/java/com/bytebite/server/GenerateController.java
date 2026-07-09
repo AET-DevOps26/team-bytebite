@@ -1,6 +1,7 @@
 package com.bytebite.server;
 
 import com.bytebite.server.dto.GenerateRequest;
+import com.bytebite.server.dto.ProviderAvailabilityDTO;
 import com.bytebite.server.dto.RecipeResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -8,16 +9,21 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -79,5 +85,22 @@ public class GenerateController {
         }
 
         return response;
+    }
+
+    @GetMapping(value = "/api/recipes/providers", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            summary = "Check which LLM providers are available",
+            description = "Reports whether the OpenAI provider is configured on the AI service, so the client can hide the option otherwise. Logos is always required and assumed available."
+    )
+    public ProviderAvailabilityDTO providers() {
+        try {
+            ResponseEntity<Map<String, Object>> health = genAiRestTemplate.exchange(
+                    "/health", HttpMethod.GET, null, new ParameterizedTypeReference<Map<String, Object>>() {});
+            Map<String, Object> body = health.getBody();
+            Object openaiAvailable = body != null ? body.get("openai_available") : null;
+            return new ProviderAvailabilityDTO(Boolean.TRUE.equals(openaiAvailable));
+        } catch (RestClientException e) {
+            return new ProviderAvailabilityDTO(false);
+        }
     }
 }
