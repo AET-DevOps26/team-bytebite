@@ -1,5 +1,7 @@
 import json
 
+from main import NO_LLM_NOTE
+
 from tests.conftest import _fake_response
 
 
@@ -44,13 +46,16 @@ def test_recipes_serialized_into_user_message(
     assert sent == recipes
 
 
-def test_malformed_llm_json_returns_500(client, mock_openai_client):
+def test_malformed_llm_json_falls_back_to_input_recipes(client, mock_openai_client):
     _set_llm_content(mock_openai_client, "not json")
     response = client.post("/api/ai/merge", json={"recipes": [[_ingredient()]]})
-    assert response.status_code == 500
+    assert response.status_code == 200
+    body = response.json()
+    assert body["note"] == NO_LLM_NOTE
+    assert body["ingredients"] == [_ingredient()]
 
 
-def test_openai_error_returns_502(client, mock_openai_client):
+def test_openai_error_falls_back_to_input_recipes(client, mock_openai_client):
     from openai import OpenAIError
 
     mock_openai_client.return_value.chat.completions.create.side_effect = OpenAIError(
@@ -60,16 +65,22 @@ def test_openai_error_returns_502(client, mock_openai_client):
         "/api/ai/merge",
         json={"recipes": [[_ingredient()]], "llm_provider": "openai"},
     )
-    assert response.status_code == 502
+    assert response.status_code == 200
+    body = response.json()
+    assert body["note"] == NO_LLM_NOTE
+    assert body["ingredients"] == [_ingredient()]
 
 
-def test_missing_api_key_returns_500(client, monkeypatch):
+def test_missing_api_key_falls_back_to_input_recipes(client, monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     response = client.post(
         "/api/ai/merge",
         json={"recipes": [[_ingredient()]], "llm_provider": "openai"},
     )
-    assert response.status_code == 500
+    assert response.status_code == 200
+    body = response.json()
+    assert body["note"] == NO_LLM_NOTE
+    assert body["ingredients"] == [_ingredient()]
 
 
 def test_empty_recipes_list_still_calls_llm(

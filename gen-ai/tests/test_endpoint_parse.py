@@ -1,6 +1,6 @@
 import json
 
-from main import LOGOS_BASE_URL, LOGOS_MODEL, OPENAI_MODEL
+from main import CANNED_INGREDIENTS, LOGOS_BASE_URL, LOGOS_MODEL, NO_LLM_NOTE, OPENAI_MODEL
 
 from tests.conftest import _fake_response
 
@@ -30,21 +30,25 @@ def test_restricted_and_alternative_fields_roundtrip(
     assert milk["alternative"] == "oat milk"
 
 
-def test_malformed_llm_json_returns_500(client, mock_openai_client):
+def test_malformed_llm_json_falls_back_to_canned_response(client, mock_openai_client):
     _set_llm_content(mock_openai_client, "not json at all")
     response = client.post("/api/ai/parse", json={"dish": "Pancakes"})
-    assert response.status_code == 500
-    assert "Failed to parse LLM response" in response.json()["detail"]
+    assert response.status_code == 200
+    body = response.json()
+    assert body["note"] == NO_LLM_NOTE
+    assert len(body["ingredients"]) == len(CANNED_INGREDIENTS)
 
 
-def test_missing_ingredients_key_returns_500(client, mock_openai_client):
+def test_missing_ingredients_key_falls_back_to_canned_response(client, mock_openai_client):
     _set_llm_content(mock_openai_client, json.dumps({"foo": "bar"}))
     response = client.post("/api/ai/parse", json={"dish": "Pancakes"})
-    assert response.status_code == 500
-    assert "Failed to parse LLM response" in response.json()["detail"]
+    assert response.status_code == 200
+    body = response.json()
+    assert body["note"] == NO_LLM_NOTE
+    assert len(body["ingredients"]) == len(CANNED_INGREDIENTS)
 
 
-def test_openai_error_returns_502(client, mock_openai_client):
+def test_openai_error_falls_back_to_canned_response(client, mock_openai_client):
     from openai import OpenAIError
 
     mock_openai_client.return_value.chat.completions.create.side_effect = OpenAIError(
@@ -53,17 +57,21 @@ def test_openai_error_returns_502(client, mock_openai_client):
     response = client.post(
         "/api/ai/parse", json={"dish": "Pancakes", "llm_provider": "openai"}
     )
-    assert response.status_code == 502
-    assert "openai error" in response.json()["detail"]
+    assert response.status_code == 200
+    body = response.json()
+    assert body["note"] == NO_LLM_NOTE
+    assert len(body["ingredients"]) == len(CANNED_INGREDIENTS)
 
 
-def test_missing_api_key_returns_500(client, monkeypatch):
+def test_missing_api_key_falls_back_to_canned_response(client, monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     response = client.post(
         "/api/ai/parse", json={"dish": "Pancakes", "llm_provider": "openai"}
     )
-    assert response.status_code == 500
-    assert "OPENAI_API_KEY" in response.json()["detail"]
+    assert response.status_code == 200
+    body = response.json()
+    assert body["note"] == NO_LLM_NOTE
+    assert len(body["ingredients"]) == len(CANNED_INGREDIENTS)
 
 
 def test_default_provider_is_logos(client, mock_openai_client, sample_ingredient_json):
