@@ -9,10 +9,10 @@ import org.springframework.web.util.DefaultUriBuilderFactory;
 @Configuration
 public class GenAiClient {
 
-    @Bean
-    public RestTemplate genAiRestTemplate(@Value("${genai.base-url}") String baseUrl) {
-        RestTemplate template = new RestTemplate();
-        template.setUriTemplateHandler(new DefaultUriBuilderFactory(baseUrl));
-        return template;
-    }
+  @Bean
+  public RestTemplate genAiRestTemplate(@Value("${genai.base-url}") String baseUrl) {
+    RestTemplate template = new RestTemplate();
+    template.setUriTemplateHandler(new DefaultUriBuilderFactory(baseUrl));
+    return template;
+  }
 }

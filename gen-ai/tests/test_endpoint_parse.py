@@ -1,7 +1,6 @@
 import json
 
 from main import CANNED_INGREDIENTS, LOGOS_BASE_URL, LOGOS_MODEL, NO_LLM_NOTE, OPENAI_MODEL
-
 from tests.conftest import _fake_response
 
 

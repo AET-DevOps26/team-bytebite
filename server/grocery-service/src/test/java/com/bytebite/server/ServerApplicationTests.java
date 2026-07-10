@@ -8,11 +8,10 @@ import org.springframework.test.context.TestPropertySource;
 // JPA/Hibernate would otherwise open a JDBC connection at startup to read DB metadata,
 // which fails in CI where no database is available. The dialect is configured explicitly
 // in application.properties, so Hibernate can bootstrap without probing the database.
-@TestPropertySource(properties = "spring.jpa.properties.hibernate.boot.allow_jdbc_metadata_access=false")
+@TestPropertySource(
+    properties = "spring.jpa.properties.hibernate.boot.allow_jdbc_metadata_access=false")
 class ServerApplicationTests {
 
-	@Test
-	void contextLoads() {
-	}
-
+  @Test
+  void contextLoads() {}
 }
