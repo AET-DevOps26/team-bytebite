@@ -52,6 +52,10 @@ spec:
               mountPath: /etc/grafana/provisioning/dashboards/dashboards.yml
               subPath: dashboards.yml
               readOnly: true
+            - name: grafana-alerting
+              mountPath: /etc/grafana/provisioning/alerting/alerting.yml
+              subPath: alerting.yml
+              readOnly: true
             - name: grafana-dashboards
               mountPath: /etc/grafana/dashboards
               readOnly: true
@@ -70,6 +74,12 @@ spec:
             items:
               - key: dashboards.yml
                 path: dashboards.yml
+        - name: grafana-alerting
+          configMap:
+            name: bytebite-grafana-provisioning
+            items:
+              - key: alerting.yml
+                path: alerting.yml
         - name: grafana-dashboards
           configMap:
             name: bytebite-grafana-dashboard
