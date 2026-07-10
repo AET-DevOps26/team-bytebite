@@ -13,7 +13,7 @@ permissions:
   packages: write
 
 jobs:
-  test:
+  test-java:
     name: Run Java Tests
     runs-on: ubuntu-latest
     strategy:
@@ -74,8 +74,10 @@ jobs:
         run: pytest gen-ai
 
   test-gatekeeper:
-    name: All Tests Passed
-    needs: [test, test-client, test-gen-ai]
+    # Branch protection on main requires a status check named exactly "Run Java Tests".
+    # Renaming this job when the protection rule is updated to match.
+    name: Run Java Tests
+    needs: [test-java, test-client, test-gen-ai]
     runs-on: ubuntu-latest
     steps:
       - name: Success Gate
