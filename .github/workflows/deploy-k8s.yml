@@ -53,6 +53,9 @@ jobs:
           chmod 600 $HOME/.kube/config
 
       - name: Deploy with Helm
+        env:
+          # Optional: when unset, the chart's fallback (admin/admin) applies.
+          GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
         run: |
           helm upgrade --install bytebite ./helm/bytebite \
             --namespace team-bytebite \
@@ -67,4 +70,5 @@ jobs:
             --set genai.openaiApiKey="${{ secrets.OPENAI_API_KEY }}" \
             --set userDb.password="${{ secrets.USER_DB_PASSWORD }}" \
             --set groceryDb.password="${{ secrets.GROCERY_DB_PASSWORD }}" \
-            --set jwt.secret="${{ secrets.JWT_SECRET }}"
+            --set jwt.secret="${{ secrets.JWT_SECRET }}" \
+            ${GRAFANA_ADMIN_PASSWORD:+--set monitoring.grafana.adminPassword="$GRAFANA_ADMIN_PASSWORD"}
