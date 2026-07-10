@@ -49,6 +49,36 @@ public class AuthService {
         return responseFor(user);
     }
 
+    public AuthResponse updateProfile(String authorizationHeader, UpdateProfileRequest request) {
+        JwtTokenService.JwtUser jwtUser = jwtTokenService.verify(authorizationHeader);
+        String name = normalizeRequired(request.name(), "Name");
+        String email = normalizeEmail(request.email());
+
+        userRepository.findByEmail(email).ifPresent(existing -> {
+            if (!existing.userId().equals(jwtUser.userId())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Email is already registered.");
+            }
+        });
+
+        UserRecord user = userRepository.updateProfile(jwtUser.userId(), name, email);
+        return responseFor(user);
+    }
+
+    public void updatePassword(String authorizationHeader, UpdatePasswordRequest request) {
+        JwtTokenService.JwtUser jwtUser = jwtTokenService.verify(authorizationHeader);
+        String currentPassword = normalizeRequired(request.currentPassword(), "Current password");
+        String newPassword = requirePassword(request.newPassword());
+
+        UserRecord user = userRepository.findById(jwtUser.userId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User no longer exists."));
+
+        if (!passwordEncoder.matches(currentPassword, user.passwordHash())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Current password is incorrect.");
+        }
+
+        userRepository.updatePassword(jwtUser.userId(), passwordEncoder.encode(newPassword));
+    }
+
     private AuthResponse responseFor(UserRecord user) {
         UserResponse userResponse = UserResponse.from(user);
         return new AuthResponse(jwtTokenService.createToken(userResponse), userResponse);
