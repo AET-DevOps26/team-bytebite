@@ -8,12 +8,13 @@ import { FeatureCards } from './components/FeatureCards'
 import { AuthCard, type AuthPayload, type AuthUser } from './components/AuthCard'
 import { GroceryListView } from './components/GroceryListView'
 import { RecipeListView } from './components/RecipeListView'
+import { ProfileView } from './components/ProfileView'
 import type {
   GroceryList, ApiRecipe, ApiRecipeSummary, RecipeSummary, Ingredient,
   ApiGroceryList, ApiGroceryListSummary, GroceryListSummary, GroceryItemDetail, EditableItem,
 } from './types'
 
-type View = 'home' | 'grocery-lists' | 'recipes'
+type View = 'home' | 'grocery-lists' | 'recipes' | 'profile'
 type LoadStatus = 'loading' | 'ready' | 'error'
 
 function apiSummaryToRecipe(summary: ApiRecipeSummary): RecipeSummary {
@@ -204,6 +205,49 @@ function App() {
     setRecipes([])
     setGroceryLists([])
     setView('home')
+  }
+
+  // Updates name/email. The server re-issues the JWT (it embeds name/email), so we swap in the
+  // fresh token and user. Returns null on success or an error message for the form to surface.
+  const handleUpdateProfile = async (name: string, email: string): Promise<string | null> => {
+    try {
+      const response = await fetch('/api/users/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name, email }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.message || 'Failed to update profile.')
+      const payload = data as AuthPayload
+      setToken(payload.token)
+      setUser(payload.user)
+      localStorage.setItem('bytebite-token', payload.token)
+      localStorage.setItem('bytebite-user', JSON.stringify(payload.user))
+      return null
+    } catch (err) {
+      return err instanceof Error ? err.message : 'Failed to update profile.'
+    }
+  }
+
+  // Changes the password after verifying the current one server-side. On success the user is
+  // logged out so they must sign in again with the new password. Returns null on success.
+  const handleChangePassword = async (currentPassword: string, newPassword: string): Promise<string | null> => {
+    try {
+      const response = await fetch('/api/users/me/password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.message || 'Failed to change password.')
+      }
+      // Brief pause so the success banner is visible before the app drops back to the login screen.
+      setTimeout(handleLogout, 1200)
+      return null
+    } catch (err) {
+      return err instanceof Error ? err.message : 'Failed to change password.'
+    }
   }
 
   // A generated dish is saved as a recipe only; grocery lists are created later by merging
@@ -444,6 +488,20 @@ function App() {
                   onCreateList={handleCreateList}
                   onUpdateList={handleUpdateList}
                   fetchItems={fetchGroceryListItems}
+                />
+              </motion.div>
+            ) : view === 'profile' ? (
+              <motion.div
+                key="profile"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
+                <ProfileView
+                  user={user}
+                  onUpdateProfile={handleUpdateProfile}
+                  onChangePassword={handleChangePassword}
                 />
               </motion.div>
             ) : view === 'recipes' ? (
