@@ -29,4 +29,98 @@ data:
         allowUiUpdates: true
         options:
           path: /etc/grafana/dashboards
+  alerting.yml: |
+    apiVersion: 1
+
+    groups:
+      - orgId: 1
+        name: ByteBite service health
+        folder: ByteBite
+        interval: 30s
+        rules:
+          - uid: bytebite-service-down
+            title: ByteBite service down
+            condition: C
+            data:
+              - refId: A
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+                datasourceUid: bytebite-prometheus
+                model:
+                  datasource:
+                    type: prometheus
+                    uid: bytebite-prometheus
+                  editorMode: code
+                  expr: up{job=~"api-gateway|user-service|grocery-service|gen-ai|prometheus|grafana"}
+                  instant: true
+                  intervalMs: 1000
+                  maxDataPoints: 43200
+                  range: false
+                  refId: A
+              - refId: B
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+                datasourceUid: __expr__
+                model:
+                  conditions:
+                    - evaluator:
+                        params: []
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                          - B
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                  datasource:
+                    type: __expr__
+                    uid: __expr__
+                  expression: A
+                  intervalMs: 1000
+                  maxDataPoints: 43200
+                  reducer: last
+                  refId: B
+                  type: reduce
+              - refId: C
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+                datasourceUid: __expr__
+                model:
+                  conditions:
+                    - evaluator:
+                        params:
+                          - 1
+                        type: lt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                          - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                  datasource:
+                    type: __expr__
+                    uid: __expr__
+                  expression: B
+                  intervalMs: 1000
+                  maxDataPoints: 43200
+                  refId: C
+                  type: threshold
+            noDataState: Alerting
+            execErrState: Alerting
+            for: 1m
+            annotations:
+              summary: "ByteBite service {{ "{{" }} $labels.job {{ "}}" }} is down"
+              description: "Prometheus reports that {{ "{{" }} $labels.job {{ "}}" }} has been down for at least 1 minute."
+            labels:
+              severity: critical
+            isPaused: false
 {{- end }}

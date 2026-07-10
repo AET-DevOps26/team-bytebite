@@ -3,6 +3,10 @@
 Deploys the ByteBite application (client, api-gateway, user-service, grocery-service, gen-ai)
 and the optional monitoring stack (Prometheus + Grafana) to Kubernetes.
 
+When monitoring is enabled, Grafana is provisioned with the ByteBite dashboard,
+the Prometheus datasource, and a `ByteBite service down` alert that fires when
+any scraped service reports `up == 0` for at least 1 minute.
+
 ## Prerequisites
 
 - Kubernetes cluster with nginx ingress controller and cert-manager

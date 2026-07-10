@@ -172,6 +172,11 @@ you override `GRAFANA_ADMIN_USER` and `GRAFANA_ADMIN_PASSWORD`. Grafana is
 provisioned with the Prometheus datasource and a `ByteBite / ByteBite Overview`
 dashboard from [`monitoring/grafana`](monitoring/grafana).
 
+Grafana also provisions a `ByteBite service down` alert. It evaluates the
+Prometheus `up` metric every 30 seconds and fires when any scraped ByteBite
+target stays down for at least 1 minute. In Grafana, open **Alerting** to see
+the rule state and active firing alerts.
+
 ---
 
 ### Kubernetes
