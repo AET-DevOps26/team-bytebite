@@ -49,6 +49,51 @@ public class UserRepository {
         }
     }
 
+    public UserRecord updateProfile(UUID userId, String name, String email) {
+        String sql = """
+                UPDATE users
+                SET name = ?, email = ?
+                WHERE user_id = ?
+                RETURNING user_id, name, email, password_hash, created_at
+                """;
+        try (Connection connection = connect();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, name);
+            statement.setString(2, email);
+            statement.setObject(3, userId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (!resultSet.next()) {
+                    throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User no longer exists.");
+                }
+                return map(resultSet);
+            }
+        } catch (SQLException exception) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not update user.");
+        }
+    }
+
+    public UserRecord updatePassword(UUID userId, String passwordHash) {
+        String sql = """
+                UPDATE users
+                SET password_hash = ?
+                WHERE user_id = ?
+                RETURNING user_id, name, email, password_hash, created_at
+                """;
+        try (Connection connection = connect();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, passwordHash);
+            statement.setObject(2, userId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (!resultSet.next()) {
+                    throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User no longer exists.");
+                }
+                return map(resultSet);
+            }
+        } catch (SQLException exception) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not update password.");
+        }
+    }
+
     public Optional<UserRecord> findByEmail(String email) {
         return find("SELECT user_id, name, email, password_hash, created_at FROM users WHERE email = ?", email);
     }

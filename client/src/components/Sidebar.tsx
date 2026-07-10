@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Home, ShoppingCart, Heart, BookOpen,
-  Settings, User, Sun, Moon, X, LogOut,
+  Home, ShoppingCart, BookOpen,
+  User, Sun, Moon, X, LogOut,
   Leaf, type LucideIcon,
 } from 'lucide-react'
 import type { AuthUser } from './AuthCard'
@@ -27,12 +27,10 @@ const navMain: NavItem[] = [
   { icon: Home, label: 'Home', view: 'home' },
   { icon: BookOpen, label: 'Recipes', view: 'recipes' },
   { icon: ShoppingCart, label: 'Grocery Lists', view: 'grocery-lists' },
-  { icon: Heart, label: 'Favorites' },
 ]
 
 const navAccount: NavItem[] = [
-  { icon: Settings, label: 'Settings' },
-  { icon: User, label: 'Profile' },
+  { icon: User, label: 'Profile', view: 'profile' },
 ]
 
 export function LogoMark({ scale = 'lg' }: { scale?: 'sm' | 'lg' }) {
