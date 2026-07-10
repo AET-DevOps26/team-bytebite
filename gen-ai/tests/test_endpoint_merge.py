@@ -1,6 +1,6 @@
 import json
 
-from main import LOGOS_BASE_URL, LOGOS_MODEL
+from main import LOGOS_BASE_URL, LOGOS_MODEL, NO_LLM_NOTE
 
 from tests.conftest import _fake_response
 
@@ -34,13 +34,28 @@ def test_happy_path_merges_and_returns_ingredients(
     assert len(response.json()["ingredients"]) == 2
 
 
-def test_malformed_llm_json_returns_500(client, mock_openai_client):
+def test_recipes_serialized_into_user_message(
+    client, mock_openai_client, sample_ingredient_json
+):
+    _set_llm_content(mock_openai_client, sample_ingredient_json)
+    recipes = [[_ingredient()], [_ingredient(name="sugar")]]
+    client.post("/api/ai/merge", json={"recipes": recipes})
+    _, kwargs = mock_openai_client.return_value.chat.completions.create.call_args
+    user_message = next(m for m in kwargs["messages"] if m["role"] == "user")
+    sent = json.loads(user_message["content"])
+    assert sent == recipes
+
+
+def test_malformed_llm_json_falls_back_to_input_recipes(client, mock_openai_client):
     _set_llm_content(mock_openai_client, "not json")
     response = client.post("/api/ai/merge", json={"recipes": [[_ingredient()]]})
-    assert response.status_code == 500
+    assert response.status_code == 200
+    body = response.json()
+    assert body["note"] == NO_LLM_NOTE
+    assert body["ingredients"] == [_ingredient()]
 
 
-def test_openai_error_returns_502(client, mock_openai_client):
+def test_openai_error_falls_back_to_input_recipes(client, mock_openai_client):
     from openai import OpenAIError
 
     mock_openai_client.return_value.chat.completions.create.side_effect = OpenAIError(
@@ -50,7 +65,10 @@ def test_openai_error_returns_502(client, mock_openai_client):
         "/api/ai/merge",
         json={"recipes": [[_ingredient()]], "llm_provider": "openai"},
     )
-    assert response.status_code == 502
+    assert response.status_code == 200
+    body = response.json()
+    assert body["note"] == NO_LLM_NOTE
+    assert body["ingredients"] == [_ingredient()]
 
 
 def test_missing_openai_key_falls_back_to_logos(

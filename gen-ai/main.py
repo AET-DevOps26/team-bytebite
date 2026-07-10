@@ -23,9 +23,11 @@ Instrumentator().instrument(app).expose(app)
 LOGOS_BASE_URL = "https://logos.aet.cit.tum.de/v1"
 LOGOS_MODEL = "openai/gpt-oss-120b"
 OPENAI_MODEL = "gpt-4o-mini"
+LM_STUDIO_BASE_URL = os.getenv("LM_STUDIO_BASE_URL", "http://localhost:1234/v1")
+LM_STUDIO_MODEL = os.getenv("LM_STUDIO_MODEL", "local-model")
 DEFAULT_LLM_PROVIDER = "logos"
 
-Provider = Literal["logos", "openai"]
+Provider = Literal["logos", "openai", "local"]
 
 BASE_SYSTEM_PROMPT = """
 ## Role
@@ -136,6 +138,7 @@ class GenerateRequest(BaseModel):
 class GenerateResponse(BaseModel):
     dish: str
     ingredients: list[Ingredient]
+    note: str | None = None
 
 
 class MergeRequest(BaseModel):
@@ -145,6 +148,19 @@ class MergeRequest(BaseModel):
 
 class MergeResponse(BaseModel):
     ingredients: list[Ingredient]
+    note: str | None = None
+
+
+NO_LLM_NOTE = "No LLM is currently available — showing a canned example response."
+
+# Shown when no LLM provider is configured/reachable, so the UI always has something to display.
+CANNED_INGREDIENTS = [
+    Ingredient(name="Spaghetti", quantity="400", unit="g", category="Pantry"),
+    Ingredient(name="Garlic", quantity="2", unit="piece", category="Produce"),
+    Ingredient(name="Olive oil", quantity="30", unit="ml", category="Pantry"),
+    Ingredient(name="Parmesan cheese", quantity="50", unit="g", category="Dairy"),
+    Ingredient(name="Salt", quantity="N/A", unit="N/A", category="Spices"),
+]
 
 
 MERGE_PROMPT = """
@@ -190,6 +206,11 @@ def get_client(provider: Provider) -> OpenAI:
             raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not configured")
         return OpenAI(api_key=api_key)
 
+    if provider == "local":
+        # LM Studio's OpenAI-compatible server doesn't validate the key, but the
+        # client requires a non-empty string.
+        return OpenAI(api_key="lm-studio", base_url=LM_STUDIO_BASE_URL)
+
     api_key = os.getenv("LOGOS_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="LOGOS_KEY is not configured")
@@ -201,16 +222,25 @@ def openai_available() -> bool:
 
 
 def normalize_provider(provider: str | None) -> Provider:
+    if provider == "local":
+        return "local"
     # OpenAI is opt-in and requires OPENAI_API_KEY; without it we always fall back to
     # Logos, which is the hard dependency for this service.
     if provider == "openai" and openai_available():
         return "openai"
-    return "logos"
+    return DEFAULT_LLM_PROVIDER
 
 
 def create_chat_completion(provider: Provider, messages: list[dict[str, str]]):
+    if provider == "openai":
+        model = OPENAI_MODEL
+    elif provider == "local":
+        model = LM_STUDIO_MODEL
+    else:
+        model = LOGOS_MODEL
+
     kwargs = {
-        "model": LOGOS_MODEL if provider == "logos" else OPENAI_MODEL,
+        "model": model,
         "messages": messages,
         # Low temperature keeps categorization deterministic so the same ingredient
         # is not labelled differently across requests.
@@ -246,14 +276,10 @@ def generate(request: GenerateRequest):
                 {"role": "user", "content": request.dish},
             ],
         )
-    except OpenAIError as e:
-        raise HTTPException(status_code=502, detail=f"{provider} error: {e}")
-
-    try:
         data = parse_json_content(response.choices[0].message.content)
         ingredients = [Ingredient(**item) for item in data["ingredients"]]
-    except (KeyError, ValueError) as e:
-        raise HTTPException(status_code=500, detail=f"Failed to parse LLM response: {e}")
+    except (HTTPException, OpenAIError, KeyError, ValueError):
+        return GenerateResponse(dish=request.dish, ingredients=CANNED_INGREDIENTS, note=NO_LLM_NOTE)
 
     return GenerateResponse(dish=request.dish, ingredients=ingredients)
 
@@ -274,13 +300,11 @@ def merge(request: MergeRequest):
                 {"role": "user", "content": recipes_json},
             ],
         )
-    except OpenAIError as e:
-        raise HTTPException(status_code=502, detail=f"{provider} error: {e}")
-
-    try:
         data = parse_json_content(response.choices[0].message.content)
         ingredients = [Ingredient(**item) for item in data["ingredients"]]
-    except (KeyError, ValueError) as e:
-        raise HTTPException(status_code=500, detail=f"Failed to parse LLM response: {e}")
+    except (HTTPException, OpenAIError, KeyError, ValueError):
+        # Fall back to the first recipe as-is so the merge UI still has something to show.
+        fallback = [ing for recipe in request.recipes for ing in recipe][:5] or CANNED_INGREDIENTS
+        return MergeResponse(ingredients=fallback, note=NO_LLM_NOTE)
 
     return MergeResponse(ingredients=ingredients)

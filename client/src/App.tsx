@@ -12,6 +12,7 @@ import { ProfileView } from './components/ProfileView'
 import type {
   GroceryList, ApiRecipe, ApiRecipeSummary, RecipeSummary, Ingredient,
   ApiGroceryList, ApiGroceryListSummary, GroceryListSummary, GroceryItemDetail, EditableItem,
+  LlmProvider,
 } from './types'
 import {
   apiSummaryToRecipe, parseQuantity, toRecipeItemPayload, toGroceryItemPayload,
@@ -20,6 +21,8 @@ import {
 
 type View = 'home' | 'grocery-lists' | 'recipes' | 'profile'
 type LoadStatus = 'loading' | 'ready' | 'error'
+
+const LLM_PROVIDER_STORAGE_KEY = 'bytebite:llmProvider'
 
 function getInitialDark(): boolean {
   const stored = localStorage.getItem('bytebite-dark')
@@ -40,6 +43,14 @@ function App() {
   const [recipesStatus, setRecipesStatus] = useState<LoadStatus>('loading')
   const [groceryLists, setGroceryLists] = useState<GroceryListSummary[]>([])
   const [groceryStatus, setGroceryStatus] = useState<LoadStatus>('loading')
+  const [llmProvider, setLlmProvider] = useState<LlmProvider>(() => {
+    const stored = localStorage.getItem(LLM_PROVIDER_STORAGE_KEY)
+    return stored === 'openai' || stored === 'local' ? stored : 'logos'
+  })
+
+  useEffect(() => {
+    localStorage.setItem(LLM_PROVIDER_STORAGE_KEY, llmProvider)
+  }, [llmProvider])
 
   const loadRecipes = useCallback((authToken: string) => {
     setRecipesStatus('loading')
@@ -273,7 +284,7 @@ function App() {
       const response = await fetch('/api/grocery-list/merge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ recipeIds, llmProvider: 'logos' }),
+        body: JSON.stringify({ recipeIds, llmProvider }),
       })
       if (!response.ok) throw new Error('Failed to merge recipes')
       const saved = await response.json() as ApiGroceryList
@@ -468,7 +479,12 @@ function App() {
                 transition={{ duration: 0.15 }}
               >
                 <HeroSection />
-                <RecipeCard token={token} onListGenerated={handleListGenerated} />
+                <RecipeCard
+                  token={token}
+                  llmProvider={llmProvider}
+                  onLlmProviderChange={setLlmProvider}
+                  onListGenerated={handleListGenerated}
+                />
                 <FeatureCards />
                 <p className="mt-16 text-center text-xs text-gray-400 dark:text-gray-600">
                   ByteBite · AI-powered grocery assistant
