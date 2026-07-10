@@ -48,7 +48,21 @@ export function RecipeCard({ token, onListGenerated }: RecipeCardProps) {
   const [placeholderIdx, setPlaceholderIdx] = useState(0)
   const [dietaryRestrictions, setDietaryRestrictions] = useState<DietaryRestriction[]>([])
   const [llmProvider, setLlmProvider] = useState<LlmProvider>('logos')
+  const [openaiAvailable, setOpenaiAvailable] = useState(false)
   const [savedToRecipes, setSavedToRecipes] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/recipes/providers', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(response => (response.ok ? response.json() : { openaiAvailable: false }))
+      .then((data: { openaiAvailable: boolean }) => setOpenaiAvailable(data.openaiAvailable))
+      .catch(() => setOpenaiAvailable(false))
+  }, [token])
+
+  useEffect(() => {
+    if (!openaiAvailable && llmProvider === 'openai') setLlmProvider('logos')
+  }, [openaiAvailable, llmProvider])
 
   useEffect(() => {
     if (input) return
@@ -192,14 +206,18 @@ export function RecipeCard({ token, onListGenerated }: RecipeCardProps) {
             <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">LLM provider</p>
             <p className="text-xs text-gray-400 dark:text-gray-500">
               {llmProvider === 'logos' ? 'Logos is selected' : 'OpenAI is selected'}
+              {!openaiAvailable && ' (OpenAI unavailable)'}
             </p>
           </div>
           <button
             type="button"
             role="switch"
             aria-checked={llmProvider === 'openai'}
-            onClick={() => setLlmProvider(provider => provider === 'logos' ? 'openai' : 'logos')}
-            className="relative grid h-9 w-32 grid-cols-2 items-center rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-1 text-xs font-semibold text-gray-500 dark:text-gray-400 shadow-sm transition-colors"
+            disabled={!openaiAvailable}
+            onClick={() => openaiAvailable && setLlmProvider(provider => provider === 'logos' ? 'openai' : 'logos')}
+            className={`relative grid h-9 w-32 grid-cols-2 items-center rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-1 text-xs font-semibold text-gray-500 dark:text-gray-400 shadow-sm transition-colors ${
+              !openaiAvailable ? 'cursor-not-allowed opacity-50' : ''
+            }`}
           >
             <span
               className={`absolute left-1 inset-y-1 w-[calc(50%-0.25rem)] rounded-full bg-[#2d6a4f] shadow-sm transition-transform ${

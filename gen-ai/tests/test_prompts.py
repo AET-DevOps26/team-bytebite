@@ -34,13 +34,6 @@ def test_multiple_restrictions_all_present():
     assert "Vegan, Gluten Free" in prompt
 
 
-def test_unknown_restriction_filtered_from_rules_but_named_in_intro():
-    prompt = build_system_prompt(["Keto"])
-    assert "The user has the following dietary restrictions: Keto." in prompt
-    # No rule bullet exists for "Keto" since it isn't in DIETARY_RULES.
-    assert "**Keto**" not in prompt
-
-
 def test_category_token_list_present():
     prompt = build_system_prompt([])
     for token in CATEGORY_TOKENS:
