@@ -1,6 +1,7 @@
 import json
 
-from main import CANNED_INGREDIENTS, LOGOS_BASE_URL, LOGOS_MODEL, NO_LLM_NOTE, OPENAI_MODEL
+from config import LOGOS_BASE_URL, LOGOS_MODEL, OPENAI_MODEL
+from llm import CANNED_INGREDIENTS, NO_LLM_NOTE
 
 from tests.conftest import _fake_response
 
