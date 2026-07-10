@@ -1,4 +1,4 @@
-from main import DIETARY_RULES, build_system_prompt
+from prompts import DIETARY_RULES, build_system_prompt
 
 CATEGORY_TOKENS = [
     "Produce",
