@@ -4,10 +4,4 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public record UserRecord(
-        UUID userId,
-        String name,
-        String email,
-        String passwordHash,
-        OffsetDateTime createdAt
-) {
-}
+    UUID userId, String name, String email, String passwordHash, OffsetDateTime createdAt) {}
