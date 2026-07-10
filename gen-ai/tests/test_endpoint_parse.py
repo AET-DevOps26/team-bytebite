@@ -63,15 +63,19 @@ def test_openai_error_falls_back_to_canned_response(client, mock_openai_client):
     assert len(body["ingredients"]) == len(CANNED_INGREDIENTS)
 
 
-def test_missing_api_key_falls_back_to_canned_response(client, monkeypatch):
+def test_missing_openai_key_falls_back_to_logos(
+    client, mock_openai_client, sample_ingredient_json, monkeypatch
+):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    _set_llm_content(mock_openai_client, sample_ingredient_json)
     response = client.post(
         "/api/ai/parse", json={"dish": "Pancakes", "llm_provider": "openai"}
     )
     assert response.status_code == 200
-    body = response.json()
-    assert body["note"] == NO_LLM_NOTE
-    assert len(body["ingredients"]) == len(CANNED_INGREDIENTS)
+    _, kwargs = mock_openai_client.return_value.chat.completions.create.call_args
+    assert kwargs["model"] == LOGOS_MODEL
+    _, client_kwargs = mock_openai_client.call_args
+    assert client_kwargs["base_url"] == LOGOS_BASE_URL
 
 
 def test_default_provider_is_logos(client, mock_openai_client, sample_ingredient_json):

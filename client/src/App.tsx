@@ -8,84 +8,21 @@ import { FeatureCards } from './components/FeatureCards'
 import { AuthCard, type AuthPayload, type AuthUser } from './components/AuthCard'
 import { GroceryListView } from './components/GroceryListView'
 import { RecipeListView } from './components/RecipeListView'
+import { ProfileView } from './components/ProfileView'
 import type {
   GroceryList, ApiRecipe, ApiRecipeSummary, RecipeSummary, Ingredient,
   ApiGroceryList, ApiGroceryListSummary, GroceryListSummary, GroceryItemDetail, EditableItem,
   LlmProvider,
 } from './types'
+import {
+  apiSummaryToRecipe, parseQuantity, toRecipeItemPayload, toGroceryItemPayload,
+  apiItemsToIngredients, apiSummaryToGroceryList, detailToGrocerySummary, apiItemsToGroceryDetail,
+} from './lib/mappers'
 
-type View = 'home' | 'grocery-lists' | 'recipes'
+type View = 'home' | 'grocery-lists' | 'recipes' | 'profile'
 type LoadStatus = 'loading' | 'ready' | 'error'
 
 const LLM_PROVIDER_STORAGE_KEY = 'bytebite:llmProvider'
-
-function apiSummaryToRecipe(summary: ApiRecipeSummary): RecipeSummary {
-  return { id: summary.recipeId, dish: summary.name, createdAt: summary.createdAt }
-}
-
-// The API uses the DB's numeric quantity (null = unspecified); the client keeps a display
-// string, so convert at the API boundary.
-function formatQuantity(quantity: number | null): string {
-  return quantity === null ? 'N/A' : String(quantity)
-}
-
-function parseQuantity(quantity: string): number | null {
-  const trimmed = quantity?.trim()
-  if (!trimmed || trimmed === 'N/A') return null
-  const n = Number(trimmed)
-  return Number.isFinite(n) ? n : null
-}
-
-// Maps a form row to the API item payload. Recipes omit `purchased`; grocery lists send the
-// row's current flag (undefined → false for newly added items) so surviving items stay picked up.
-function toRecipeItemPayload(item: EditableItem) {
-  return { name: item.name, quantity: parseQuantity(item.quantity), unit: item.unit, category: item.category }
-}
-
-function toGroceryItemPayload(item: EditableItem) {
-  return { ...toRecipeItemPayload(item), purchased: item.purchased ?? false }
-}
-
-function apiItemsToIngredients(recipe: ApiRecipe): Ingredient[] {
-  return recipe.items.map(item => ({
-    name: item.name,
-    quantity: formatQuantity(item.quantity),
-    unit: item.unit,
-    category: item.category,
-  }))
-}
-
-function apiSummaryToGroceryList(summary: ApiGroceryListSummary): GroceryListSummary {
-  return {
-    id: summary.groceryListId,
-    dish: summary.name,
-    createdAt: summary.createdAt,
-    itemCount: summary.itemCount,
-    purchasedCount: summary.purchasedCount,
-  }
-}
-
-// POST/PUT return the full detail; derive the summary counts the list view needs from it.
-function detailToGrocerySummary(detail: ApiGroceryList): GroceryListSummary {
-  return {
-    id: detail.groceryListId,
-    dish: detail.name,
-    createdAt: detail.createdAt,
-    itemCount: detail.items.length,
-    purchasedCount: detail.items.filter(item => item.purchased).length,
-  }
-}
-
-function apiItemsToGroceryDetail(list: ApiGroceryList): GroceryItemDetail[] {
-  return list.items.map(item => ({
-    itemId: item.itemId,
-    name: item.name,
-    quantity: formatQuantity(item.quantity),
-    unit: item.unit,
-    category: item.category,
-    purchased: item.purchased,
-  }))
-}
 
 function getInitialDark(): boolean {
   const stored = localStorage.getItem('bytebite-dark')
@@ -215,6 +152,49 @@ function App() {
     setRecipes([])
     setGroceryLists([])
     setView('home')
+  }
+
+  // Updates name/email. The server re-issues the JWT (it embeds name/email), so we swap in the
+  // fresh token and user. Returns null on success or an error message for the form to surface.
+  const handleUpdateProfile = async (name: string, email: string): Promise<string | null> => {
+    try {
+      const response = await fetch('/api/users/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name, email }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.message || 'Failed to update profile.')
+      const payload = data as AuthPayload
+      setToken(payload.token)
+      setUser(payload.user)
+      localStorage.setItem('bytebite-token', payload.token)
+      localStorage.setItem('bytebite-user', JSON.stringify(payload.user))
+      return null
+    } catch (err) {
+      return err instanceof Error ? err.message : 'Failed to update profile.'
+    }
+  }
+
+  // Changes the password after verifying the current one server-side. On success the user is
+  // logged out so they must sign in again with the new password. Returns null on success.
+  const handleChangePassword = async (currentPassword: string, newPassword: string): Promise<string | null> => {
+    try {
+      const response = await fetch('/api/users/me/password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.message || 'Failed to change password.')
+      }
+      // Brief pause so the success banner is visible before the app drops back to the login screen.
+      setTimeout(handleLogout, 1200)
+      return null
+    } catch (err) {
+      return err instanceof Error ? err.message : 'Failed to change password.'
+    }
   }
 
   // A generated dish is saved as a recipe only; grocery lists are created later by merging
@@ -455,6 +435,20 @@ function App() {
                   onCreateList={handleCreateList}
                   onUpdateList={handleUpdateList}
                   fetchItems={fetchGroceryListItems}
+                />
+              </motion.div>
+            ) : view === 'profile' ? (
+              <motion.div
+                key="profile"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
+                <ProfileView
+                  user={user}
+                  onUpdateProfile={handleUpdateProfile}
+                  onChangePassword={handleChangePassword}
                 />
               </motion.div>
             ) : view === 'recipes' ? (

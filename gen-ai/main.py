@@ -196,7 +196,7 @@ You are a Grocery List Merging Agent. Your sole task is to combine multiple ingr
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "openai_available": openai_available()}
 
 
 def get_client(provider: Provider) -> OpenAI:
@@ -217,8 +217,18 @@ def get_client(provider: Provider) -> OpenAI:
     return OpenAI(api_key=api_key, base_url=LOGOS_BASE_URL)
 
 
+def openai_available() -> bool:
+    return bool(os.getenv("OPENAI_API_KEY"))
+
+
 def normalize_provider(provider: str | None) -> Provider:
-    return provider if provider in ("openai", "local") else DEFAULT_LLM_PROVIDER
+    if provider == "local":
+        return "local"
+    # OpenAI is opt-in and requires OPENAI_API_KEY; without it we always fall back to
+    # Logos, which is the hard dependency for this service.
+    if provider == "openai" and openai_available():
+        return "openai"
+    return DEFAULT_LLM_PROVIDER
 
 
 def create_chat_completion(provider: Provider, messages: list[dict[str, str]]):

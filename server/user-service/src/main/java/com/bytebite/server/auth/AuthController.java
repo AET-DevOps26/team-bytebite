@@ -11,9 +11,12 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -64,6 +67,42 @@ public class AuthController {
     )
     public AuthResponse me(@Parameter(hidden = true) @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
         return authService.currentUser(authorization);
+    }
+
+    @PatchMapping("/api/users/me")
+    @Operation(
+            summary = "Update the current user's name and email",
+            security = @SecurityRequirement(name = "bearerAuth"),
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Profile updated and a fresh JWT issued"),
+                    @ApiResponse(responseCode = "400", description = "Invalid profile data", content = @Content(schema = @Schema(implementation = Map.class))),
+                    @ApiResponse(responseCode = "401", description = "Missing, expired, or invalid JWT", content = @Content(schema = @Schema(implementation = Map.class))),
+                    @ApiResponse(responseCode = "409", description = "Email address is already registered", content = @Content(schema = @Schema(implementation = Map.class)))
+            }
+    )
+    public AuthResponse updateProfile(
+            @Parameter(hidden = true) @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization,
+            @RequestBody UpdateProfileRequest request
+    ) {
+        return authService.updateProfile(authorization, request);
+    }
+
+    @PutMapping("/api/users/me/password")
+    @Operation(
+            summary = "Change the current user's password",
+            security = @SecurityRequirement(name = "bearerAuth"),
+            responses = {
+                    @ApiResponse(responseCode = "204", description = "Password changed"),
+                    @ApiResponse(responseCode = "400", description = "Invalid password data", content = @Content(schema = @Schema(implementation = Map.class))),
+                    @ApiResponse(responseCode = "401", description = "Missing/invalid JWT or incorrect current password", content = @Content(schema = @Schema(implementation = Map.class)))
+            }
+    )
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updatePassword(
+            @Parameter(hidden = true) @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization,
+            @RequestBody UpdatePasswordRequest request
+    ) {
+        authService.updatePassword(authorization, request);
     }
 
     @org.springframework.web.bind.annotation.ExceptionHandler(ResponseStatusException.class)

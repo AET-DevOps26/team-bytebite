@@ -48,8 +48,22 @@ export function RecipeCard({ token, llmProvider, onLlmProviderChange, onListGene
   const [ingredients, setIngredients] = useState<Ingredient[]>([])
   const [placeholderIdx, setPlaceholderIdx] = useState(0)
   const [dietaryRestrictions, setDietaryRestrictions] = useState<DietaryRestriction[]>([])
+  const [openaiAvailable, setOpenaiAvailable] = useState(false)
   const [savedToRecipes, setSavedToRecipes] = useState(false)
   const [note, setNote] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/recipes/providers', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(response => (response.ok ? response.json() : { openaiAvailable: false }))
+      .then((data: { openaiAvailable: boolean }) => setOpenaiAvailable(data.openaiAvailable))
+      .catch(() => setOpenaiAvailable(false))
+  }, [token])
+
+  useEffect(() => {
+    if (!openaiAvailable && llmProvider === 'openai') onLlmProviderChange('logos')
+  }, [openaiAvailable, llmProvider, onLlmProviderChange])
 
   useEffect(() => {
     if (input) return
@@ -195,6 +209,7 @@ export function RecipeCard({ token, llmProvider, onLlmProviderChange, onListGene
             <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">LLM provider</p>
             <p className="text-xs text-gray-400 dark:text-gray-500">
               {llmProvider === 'logos' ? 'Logos is selected' : llmProvider === 'openai' ? 'OpenAI is selected' : 'Local (LM Studio) is selected'}
+              {!openaiAvailable && ' (OpenAI unavailable)'}
             </p>
           </div>
           <div
@@ -211,19 +226,23 @@ export function RecipeCard({ token, llmProvider, onLlmProviderChange, onListGene
                   'translateX(200%)',
               }}
             />
-            {(['logos', 'openai', 'local'] as const).map((provider, index) => (
-              <button
-                key={provider}
-                type="button"
-                role="radio"
-                aria-checked={llmProvider === provider}
-                onClick={() => onLlmProviderChange(provider)}
-                style={{ gridColumnStart: index + 1, gridRowStart: 1 }}
-                className={`relative z-10 flex h-full items-center justify-center text-center transition-colors ${llmProvider === provider ? 'text-white' : ''}`}
-              >
-                {provider === 'logos' ? 'Logos' : provider === 'openai' ? 'OpenAI' : 'Local'}
-              </button>
-            ))}
+            {(['logos', 'openai', 'local'] as const).map((provider, index) => {
+              const disabled = provider === 'openai' && !openaiAvailable
+              return (
+                <button
+                  key={provider}
+                  type="button"
+                  role="radio"
+                  aria-checked={llmProvider === provider}
+                  disabled={disabled}
+                  onClick={() => onLlmProviderChange(provider)}
+                  style={{ gridColumnStart: index + 1, gridRowStart: 1 }}
+                  className={`relative z-10 flex h-full items-center justify-center text-center transition-colors ${llmProvider === provider ? 'text-white' : ''} ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
+                >
+                  {provider === 'logos' ? 'Logos' : provider === 'openai' ? 'OpenAI' : 'Local'}
+                </button>
+              )
+            })}
           </div>
         </div>
 
