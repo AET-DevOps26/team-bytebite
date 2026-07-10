@@ -198,7 +198,7 @@ The local Helm values also expose monitoring services when supported by your
 local cluster:
 
 - Prometheus: http://localhost:9090
-- Grafana: http://localhost:3000 (`admin` / `bytebite`)
+- Grafana: http://localhost:3000 (`admin` / `admin`, the chart fallback)
 
 #### Kubernetes Deployment to the AET cluster
 
@@ -222,3 +222,16 @@ helm uninstall bytebite --namespace team-bytebite  # To take down later
 The app is available at https://team-bytebite.stud.k8s.aet.cit.tum.de
 Grafana is available at https://team-bytebite.stud.k8s.aet.cit.tum.de/grafana
 when `monitoring.enabled` and `monitoring.grafana.ingress.enabled` are true.
+
+#### Login credentials
+
+For evaluation, both the deployed app and Grafana come with a ready-to-use login:
+
+| Service | URL | Username | Password |
+| --- | --- | --- | --- |
+| ByteBite app | https://team-bytebite.stud.k8s.aet.cit.tum.de | `admin@bytebite.dev` | `password` |
+| Grafana | https://team-bytebite.stud.k8s.aet.cit.tum.de/grafana | `admin` | `bytebite` |
+
+The app account is seeded by [`databases/user-db/init.sql`](databases/user-db/init.sql); you can
+also self-register a new account. The Grafana password is supplied at deploy time via the
+`GRAFANA_ADMIN_PASSWORD` GitHub Actions secret — the chart's built-in fallback is `admin` / `admin`.

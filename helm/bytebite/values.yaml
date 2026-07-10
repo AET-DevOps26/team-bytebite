@@ -130,7 +130,8 @@ monitoring:
       targetPort: 3000
     replicaCount: 1
     adminUser: admin
-    adminPassword: bytebite
+    # Fallback only. Real deploys override this via the GRAFANA_ADMIN_PASSWORD
+    adminPassword: admin
     ingress:
       enabled: true
       path: /grafana
