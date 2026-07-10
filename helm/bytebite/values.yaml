@@ -65,6 +65,7 @@ userDb:
     pullPolicy: Always
   name: bytebite_user
   user: bytebite_user
+  # Empty falls back to the development password in secret.yaml. Override for real deploys.
   password: ""
 
 groceryDb:
@@ -74,6 +75,7 @@ groceryDb:
     pullPolicy: Always
   name: bytebite_grocery
   user: bytebite_grocery
+  # Empty falls back to the development password in secret.yaml. Override for real deploys.
   password: ""
 
 # Shared JWT signing/verification secret for user-service (signs) and

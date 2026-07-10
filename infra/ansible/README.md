@@ -17,7 +17,7 @@ terraform apply  ──▶  inventory.ini + ssh_key.pem  ──▶  ansible-play
 | `docker` | Installs Docker Engine + the Compose v2 plugin from Docker's official apt repo; enables the service; adds the deploy user to the `docker` group |
 | `deploy` | Copies the repo-root compose file (`compose_file`, default `compose.yaml`), monitoring config, and a rendered `.env` to `/opt/bytebite`, logs into GHCR, and runs `docker compose up -d --pull=always --no-build` (pulls all application images from GHCR; never builds on the VM) |
 
-The CI workflow [`deploy.yml`](../../.github/workflows/deploy.yml) runs Terraform and then this same
+The CI workflow [`deploy-azure.yml`](../../.github/workflows/deploy-azure.yml) runs Terraform and then this same
 playbook in one job, on every green build of `main`.
 
 ## Layout

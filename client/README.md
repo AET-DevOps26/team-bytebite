@@ -4,7 +4,7 @@ React + Vite + TypeScript frontend for ByteBite.
 
 ## Prerequisites
 
-- Node 18+
+- Node 22 (matches the CI runner and [Dockerfile](Dockerfile))
 
 ## Setup & Run
 
