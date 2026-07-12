@@ -1,16 +1,10 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Loader2, Save, KeyRound } from 'lucide-react'
-import { AlertBanner } from './AlertBanner'
-import type { AuthUser } from './AuthCard'
-
-interface ProfileViewProps {
-  user: AuthUser
-  // Updates name/email. Returns null on success, or an error message to display.
-  onUpdateProfile: (name: string, email: string) => Promise<string | null>
-  // Changes the password. Returns null on success (caller then logs out), or an error message.
-  onChangePassword: (currentPassword: string, newPassword: string) => Promise<string | null>
-}
+import { AlertBanner } from '../components/AlertBanner'
+import { useAuth } from '../contexts/authContext'
+import { errorMessage } from '../lib/api'
+import type { AuthPayload } from '../types'
 
 const inputCls =
   'w-full rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-950/50 px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-[#2d6a4f]/70 focus:ring-2 focus:ring-[#2d6a4f]/15'
@@ -20,9 +14,10 @@ const cardCls =
 const buttonCls =
   'w-full flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-full bg-gradient-to-r from-[#1b5e38] to-[#2d6a4f] text-white font-semibold text-sm shadow-lg shadow-green-900/25 disabled:opacity-60 disabled:cursor-not-allowed'
 
-export function ProfileView({ user, onUpdateProfile, onChangePassword }: ProfileViewProps) {
-  const [name, setName] = useState(user.name)
-  const [email, setEmail] = useState(user.email)
+export function ProfilePage() {
+  const { user, api, signIn, signOut } = useAuth()
+  const [name, setName] = useState(user?.name ?? '')
+  const [email, setEmail] = useState(user?.email ?? '')
   const [profileError, setProfileError] = useState('')
   const [profileSuccess, setProfileSuccess] = useState('')
   const [savingProfile, setSavingProfile] = useState(false)
@@ -33,6 +28,9 @@ export function ProfileView({ user, onUpdateProfile, onChangePassword }: Profile
   const [passwordSuccess, setPasswordSuccess] = useState('')
   const [savingPassword, setSavingPassword] = useState(false)
 
+  // The route guard only mounts this page for a signed-in user; the check keeps TypeScript happy.
+  if (!user) return null
+
   const profileDirty = name.trim() !== user.name || email.trim() !== user.email
 
   const handleProfileSubmit = async (event: React.FormEvent) => {
@@ -40,12 +38,14 @@ export function ProfileView({ user, onUpdateProfile, onChangePassword }: Profile
     setProfileError('')
     setProfileSuccess('')
     setSavingProfile(true)
-    const error = await onUpdateProfile(name.trim(), email.trim())
-    setSavingProfile(false)
-    if (error) {
-      setProfileError(error)
-    } else {
+    try {
+      // The JWT embeds name/email, so the server re-issues it; the response is a whole new session.
+      signIn(await api.patch<AuthPayload>('/users/me', { name: name.trim(), email: email.trim() }))
       setProfileSuccess('Profile updated.')
+    } catch (error) {
+      setProfileError(errorMessage(error, 'Failed to update profile.'))
+    } finally {
+      setSavingProfile(false)
     }
   }
 
@@ -54,13 +54,16 @@ export function ProfileView({ user, onUpdateProfile, onChangePassword }: Profile
     setPasswordError('')
     setPasswordSuccess('')
     setSavingPassword(true)
-    const error = await onChangePassword(currentPassword, newPassword)
-    // On success the app logs the user out; show a brief confirmation in the meantime.
-    if (error) {
-      setSavingPassword(false)
-      setPasswordError(error)
-    } else {
+    try {
+      // A wrong current password also answers 401, so this call must not trip the session teardown.
+      await api.put('/users/me/password', { currentPassword, newPassword }, { signOutOn401: false })
+      // Stay in the saving state and pause briefly so the confirmation is readable before the
+      // sign-out drops us back to the login screen.
       setPasswordSuccess('Password changed — please sign in again.')
+      setTimeout(signOut, 1200)
+    } catch (error) {
+      setSavingPassword(false)
+      setPasswordError(errorMessage(error, 'Failed to change password.'))
     }
   }
 

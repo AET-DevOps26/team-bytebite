@@ -1,3 +1,11 @@
+// The authenticated user and the login/register/session payload that carries them. The server
+// re-issues the JWT whenever name/email change (it embeds them), so the two always travel together.
+export type AuthUser = { userId: string; name: string; email: string; createdAt: string }
+export type AuthPayload = { token: string; user: AuthUser }
+
+// Shared by every view that loads a collection from the API.
+export type LoadStatus = 'loading' | 'ready' | 'error'
+
 export type LlmProvider = 'logos' | 'openai' | 'local'
 export type Ingredient = { name: string; quantity: string; unit: string; category: string; checked?: boolean; restricted?: boolean; alternative?: string | null }
 export type GroceryList = { id: string; dish: string; createdAt: string; ingredients: Ingredient[] }

@@ -1,15 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import App from './App'
-import type { AuthPayload } from './components/AuthCard'
 import type {
-  ApiRecipe, ApiRecipeSummary, ApiGroceryList, ApiGroceryListSummary,
+  AuthPayload, ApiRecipe, ApiRecipeSummary, ApiGroceryList, ApiGroceryListSummary,
 } from './types'
 
 // These tests render the real App and mock `fetch` at the network boundary, so they exercise the
-// wiring in App.tsx — token threading, the API↔view-model mappers, and state created in one view
-// that surfaces in another — which the isolated component tests can't reach.
+// wiring App owns — the session and api layer, the API↔view-model mappers, routing, and state
+// created on one page that surfaces on another — which the isolated component tests can't reach.
+// The router lives outside App (main.tsx supplies BrowserRouter), so the tests supply their own.
 
 // ── A tiny declarative fake backend ─────────────────────────────────────────────────────────
 type ResponseSpec = { status?: number; body?: unknown }
@@ -73,8 +74,17 @@ const okRecipes = { method: 'GET', match: '/api/recipes', respond: { body: recip
 const okGroceryEmpty = { method: 'GET', match: '/api/grocery-list', respond: { body: [] as ApiGroceryListSummary[] } } as Route
 const okSession = { method: 'GET', match: '/api/users/me', respond: { body: auth } } as Route
 
+function renderApp(initialPath = '/') {
+  return render(
+    <MemoryRouter initialEntries={[initialPath]}>
+      <App />
+    </MemoryRouter>
+  )
+}
+
+// The sidebar navigates with real links now, so these are anchors rather than buttons.
 function gotoView(user: ReturnType<typeof userEvent.setup>, name: 'Recipes' | 'Grocery Lists') {
-  return user.click(screen.getByRole('button', { name }))
+  return user.click(screen.getByRole('link', { name }))
 }
 
 beforeEach(() => {
@@ -93,7 +103,7 @@ describe('auth bootstrap', () => {
       okRecipes,
       okGroceryEmpty,
     ])
-    render(<App />)
+    renderApp()
 
     // Starts on the auth screen.
     expect(screen.getByText('Sign in to continue')).toBeInTheDocument()
@@ -116,7 +126,7 @@ describe('auth bootstrap', () => {
   it('drops back to the auth screen when the stored session is rejected', async () => {
     seedSession()
     installApi([{ method: 'GET', match: '/api/users/me', respond: { status: 401 } }])
-    render(<App />)
+    renderApp()
 
     expect(await screen.findByText('Sign in to continue')).toBeInTheDocument()
     expect(localStorage.getItem('bytebite-token')).toBeNull()
@@ -133,7 +143,7 @@ describe('recipe workflows', () => {
       okGroceryEmpty,
       { method: 'POST', match: '/api/grocery-list/merge', respond: { body: mergedList } },
     ])
-    render(<App />)
+    renderApp()
 
     await gotoView(user, 'Recipes')
     await screen.findByText('Pasta')
@@ -147,7 +157,7 @@ describe('recipe workflows', () => {
 
     expect(await screen.findByText(/merged!/i)).toBeInTheDocument()
 
-    // The merged list lives in App state, so it shows up when we switch views.
+    // The merged list lives in the shared grocery-list state, so it is there when we navigate.
     await gotoView(user, 'Grocery Lists')
     expect(await screen.findByText('Pasta + Salad')).toBeInTheDocument()
   })
@@ -165,7 +175,7 @@ describe('recipe workflows', () => {
       okGroceryEmpty,
       { method: 'POST', match: '/api/recipes', respond: { body: created } },
     ])
-    render(<App />)
+    renderApp()
 
     await gotoView(user, 'Recipes')
     await screen.findByText('No recipes yet')
@@ -188,7 +198,7 @@ describe('recipe workflows', () => {
       okGroceryEmpty,
       { method: 'DELETE', match: /\/api\/recipes\/r1$/, respond: { status: 500 } },
     ])
-    render(<App />)
+    renderApp()
 
     await gotoView(user, 'Recipes')
     await screen.findByText('Pasta')
@@ -208,12 +218,54 @@ describe('recipe workflows', () => {
       { method: 'GET', match: '/api/recipes', respond: ({ count }) => (count === 1 ? { status: 500 } : { body: [recipeSummaries[0]] }) },
       okGroceryEmpty,
     ])
-    render(<App />)
+    renderApp()
 
     await gotoView(user, 'Recipes')
     expect(await screen.findByText(/couldn't load recipes/i)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /try again/i }))
     expect(await screen.findByText('Pasta')).toBeInTheDocument()
+  })
+})
+
+// Every screen has its own URL now, which is what makes these possible at all — before the router,
+// the app rendered whatever `view` state said and the address bar never moved.
+describe('routing', () => {
+  it('opens a deep link straight to the page, without passing through Home', async () => {
+    seedSession()
+    installApi([okSession, okRecipes, okGroceryEmpty])
+    renderApp('/recipes')
+
+    expect(await screen.findByText('Pasta')).toBeInTheDocument()
+    expect(screen.queryByText(/AI-powered grocery assistant/i)).not.toBeInTheDocument()
+  })
+
+  it('sends an unauthenticated deep link through login and back to where it was headed', async () => {
+    const user = userEvent.setup()
+    installApi([
+      { method: 'POST', match: '/api/auth/login', respond: { body: auth } },
+      okRecipes,
+      okGroceryEmpty,
+    ])
+    renderApp('/recipes')
+
+    // The guard bounced us to the login screen…
+    expect(await screen.findByText('Sign in to continue')).toBeInTheDocument()
+
+    await user.type(screen.getByLabelText('Email'), 'ada@example.com')
+    await user.type(screen.getByLabelText('Password'), 'supersecret')
+    const submit = screen.getAllByRole('button').find(b => b.getAttribute('type') === 'submit')!
+    await user.click(submit)
+
+    // …and signing in returns us to /recipes rather than dumping us on Home.
+    expect(await screen.findByText('Pasta')).toBeInTheDocument()
+  })
+
+  it('redirects an unknown path to Home', async () => {
+    seedSession()
+    installApi([okSession, okRecipes, okGroceryEmpty])
+    renderApp('/does-not-exist')
+
+    expect(await screen.findByText(/AI-powered grocery assistant/i)).toBeInTheDocument()
   })
 })

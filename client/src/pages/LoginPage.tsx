@@ -1,27 +1,17 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { Navigate, useLocation } from 'react-router-dom'
 import { LogIn, Loader2, UserPlus, Utensils } from 'lucide-react'
-import { AlertBanner } from './AlertBanner'
-
-export type AuthUser = {
-  userId: string
-  name: string
-  email: string
-  createdAt: string
-}
-
-export type AuthPayload = {
-  token: string
-  user: AuthUser
-}
+import { AlertBanner } from '../components/AlertBanner'
+import { useAuth } from '../contexts/authContext'
+import { errorMessage } from '../lib/api'
+import type { AuthPayload } from '../types'
 
 type Mode = 'login' | 'register'
 
-interface AuthCardProps {
-  onAuthenticated: (payload: AuthPayload) => void
-}
-
-export function AuthCard({ onAuthenticated }: AuthCardProps) {
+export function LoginPage() {
+  const { token, user, signIn, api } = useAuth()
+  const location = useLocation()
   const [mode, setMode] = useState<Mode>('login')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -42,23 +32,23 @@ export function AuthCard({ onAuthenticated }: AuthCardProps) {
     setLoading(true)
 
     try {
-      const response = await fetch(isRegister ? '/api/auth/register' : '/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(isRegister ? { name, email, password } : { email, password }),
-      })
-
-      const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data.message || 'Authentication failed.')
-      }
-
-      onAuthenticated(data as AuthPayload)
+      const payload = await api.post<AuthPayload>(
+        isRegister ? '/auth/register' : '/auth/login',
+        isRegister ? { name, email, password } : { email, password }
+      )
+      signIn(payload)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Authentication failed.')
+      setError(errorMessage(err, 'Authentication failed.'))
     } finally {
       setLoading(false)
     }
+  }
+
+  // Signing in flips the session, which re-renders us straight into the app — back to the page the
+  // guard bounced us from, or Home. This also covers an authenticated user opening /login by hand.
+  if (token && user) {
+    const from = (location.state as { from?: string } | null)?.from
+    return <Navigate to={from ?? '/'} replace />
   }
 
   return (
