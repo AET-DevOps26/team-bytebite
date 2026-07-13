@@ -14,7 +14,7 @@ export function HeroSection() {
       </div>
 
       <h1 className="text-5xl font-bold tracking-tight leading-tight text-gray-900 dark:text-white">
-        Turn any recipe into a{' '}
+        Turn your recipes into a{' '}
         <span className="bg-gradient-to-r from-[#1b5e38] to-[#40916c] bg-clip-text text-transparent">
           smart
         </span>{' '}
@@ -22,8 +22,8 @@ export function HeroSection() {
       </h1>
 
       <p className="mt-5 text-lg text-gray-500 dark:text-gray-400 max-w-xl mx-auto leading-relaxed">
-        Paste a recipe or meal idea and ByteBite instantly organizes ingredients
-        for your next grocery run.
+        Paste a recipe or meal idea and let ByteBite create your next grocery
+        shopping list.
       </p>
     </motion.div>
   )

@@ -73,6 +73,41 @@ describe('toRecipeItemPayload / toGroceryItemPayload', () => {
   })
 })
 
+// A restricted ingredient is stored as the thing the user should actually buy, so the swap has to
+// happen on the way out — everything downstream then sees a perfectly ordinary ingredient.
+describe('dietary substitution at save time', () => {
+  const milk: EditableItem = { name: 'Milk', quantity: '200', unit: 'ml', category: 'DAIRY' }
+
+  it('saves a restricted ingredient under its alternative', () => {
+    const restricted: EditableItem = { ...milk, restricted: true, alternative: 'oat milk' }
+    expect(toRecipeItemPayload(restricted).name).toBe('oat milk')
+    expect(toGroceryItemPayload(restricted).name).toBe('oat milk')
+  })
+
+  it('keeps the quantity, unit and category of the ingredient it replaces', () => {
+    const restricted: EditableItem = { ...milk, restricted: true, alternative: 'oat milk' }
+    expect(toRecipeItemPayload(restricted)).toEqual({
+      name: 'oat milk', quantity: 200, unit: 'ml', category: 'DAIRY',
+    })
+  })
+
+  it('keeps the original when the model found no alternative', () => {
+    expect(toRecipeItemPayload({ ...milk, restricted: true, alternative: null }).name).toBe('Milk')
+  })
+
+  it('never substitutes an unrestricted ingredient', () => {
+    // Nothing clashes with the diet, so there is nothing to swap — even if a stale suggestion rides along.
+    expect(toRecipeItemPayload({ ...milk, restricted: false, alternative: 'oat milk' }).name).toBe('Milk')
+    expect(toRecipeItemPayload(milk).name).toBe('Milk')
+  })
+
+  it('leaves the dietary fields out of the payload entirely', () => {
+    const payload = toRecipeItemPayload({ ...milk, restricted: true, alternative: 'oat milk' })
+    expect(payload).not.toHaveProperty('restricted')
+    expect(payload).not.toHaveProperty('alternative')
+  })
+})
+
 describe('apiItemsToIngredients', () => {
   it('maps items and formats each quantity', () => {
     const recipe: ApiRecipe = {

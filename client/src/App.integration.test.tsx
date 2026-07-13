@@ -162,6 +162,89 @@ describe('recipe workflows', () => {
     expect(await screen.findByText('Pasta + Salad')).toBeInTheDocument()
   })
 
+  it('merges a single selected recipe into a grocery list', async () => {
+    const user = userEvent.setup()
+    seedSession()
+    const singleList: ApiGroceryList = {
+      groceryListId: 'g8',
+      name: 'Pasta',
+      createdAt: '2026-01-04',
+      items: [{ itemId: 'i1', name: 'Tomato', quantity: 3, unit: '', category: 'PRODUCE', purchased: false }],
+    }
+    const fetchMock = installApi([
+      okSession,
+      okRecipes,
+      okGroceryEmpty,
+      { method: 'POST', match: '/api/grocery-list/merge', respond: { body: singleList } },
+    ])
+    renderApp()
+
+    await gotoView(user, 'Recipes')
+    await screen.findByText('Pasta')
+
+    // One recipe is enough: the Merge button must be live with a single selection.
+    await user.click(screen.getAllByRole('checkbox')[0])
+    const merge = screen.getByRole('button', { name: 'Merge' })
+    expect(merge).toBeEnabled()
+    await user.click(merge)
+
+    expect(await screen.findByText(/merged!/i)).toBeInTheDocument()
+    const post = fetchMock.mock.calls.find(([, init]) => (init as RequestInit)?.method === 'POST')!
+    expect(JSON.parse((post[1] as RequestInit).body as string).recipeIds).toEqual(['r1'])
+  })
+
+  // Generating on the Home page is the only place the dietary flags exist. They are never stored:
+  // the ingredient that clashes with the diet is saved as its alternative, so the recipe — and
+  // every grocery list merged from it — already names the thing the user should buy.
+  it('saves a diet-clashing ingredient under its alternative', async () => {
+    const user = userEvent.setup()
+    seedSession()
+    const generated = {
+      dish: 'Pancakes',
+      ingredients: [
+        { name: 'Flour', quantity: '300', unit: 'g', category: 'PANTRY', restricted: false, alternative: null },
+        { name: 'Milk', quantity: '200', unit: 'ml', category: 'DAIRY', restricted: true, alternative: 'oat milk' },
+      ],
+    }
+    const saved: ApiRecipe = {
+      recipeId: 'r9', name: 'Pancakes', createdAt: '2026-01-06',
+      items: [
+        { itemId: 'i1', name: 'Flour', quantity: 300, unit: 'g', category: 'PANTRY' },
+        { itemId: 'i2', name: 'oat milk', quantity: 200, unit: 'ml', category: 'DAIRY' },
+      ],
+    }
+    const fetchMock = installApi([
+      okSession,
+      { method: 'GET', match: '/api/recipes/providers', respond: { body: { openaiAvailable: false } } },
+      { method: 'GET', match: '/api/recipes', respond: { body: [] as ApiRecipeSummary[] } },
+      okGroceryEmpty,
+      { method: 'POST', match: '/api/recipes/generate', respond: { body: generated } },
+      { method: 'POST', match: '/api/recipes', respond: { body: saved } },
+    ])
+    renderApp()
+
+    await user.type(await screen.findByPlaceholderText(/paste a recipe/i), 'Pancakes')
+    await user.click(screen.getByRole('button', { name: /generate recipe/i }))
+
+    await waitFor(() => {
+      const post = fetchMock.mock.calls.find(([url, init]) =>
+        String(url) === '/api/recipes' && (init as RequestInit)?.method === 'POST')
+      expect(post).toBeDefined()
+    })
+
+    const post = fetchMock.mock.calls.find(([url, init]) =>
+      String(url) === '/api/recipes' && (init as RequestInit)?.method === 'POST')!
+    const body = JSON.parse((post[1] as RequestInit).body as string)
+
+    // The milk was swapped for the oat milk; the unrestricted flour was left alone…
+    expect(body.items.map((item: { name: string }) => item.name)).toEqual(['Flour', 'oat milk'])
+    // …the swapped item kept the quantity and unit of the ingredient it replaced…
+    expect(body.items[1]).toMatchObject({ quantity: 200, unit: 'ml', category: 'DAIRY' })
+    // …and no dietary fields were persisted, because there is nowhere to put them.
+    expect(body.items[1]).not.toHaveProperty('restricted')
+    expect(body.items[1]).not.toHaveProperty('alternative')
+  })
+
   it('creates a recipe from the manual editor and prepends it to the list', async () => {
     const user = userEvent.setup()
     seedSession()

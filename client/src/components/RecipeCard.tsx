@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChefHat, ShoppingCart, ArrowRight, Loader2, AlertTriangle } from 'lucide-react'
+import { ChefHat, ArrowRight, Loader2, AlertTriangle } from 'lucide-react'
 import { AlertBanner } from './AlertBanner'
 import { useApi } from '../contexts/authContext'
 import type { Ingredient, GroceryList, LlmProvider } from '../types'
@@ -272,8 +272,8 @@ export function RecipeCard({ llmProvider, onLlmProviderChange, onListGenerated }
             </>
           ) : (
             <>
-              <ShoppingCart size={16} />
-              Generate shopping list
+              <ChefHat size={16} />
+              Generate recipe
               <ArrowRight size={15} />
             </>
           )}
@@ -305,8 +305,8 @@ export function RecipeCard({ llmProvider, onLlmProviderChange, onListGenerated }
               </div>
             )}
             <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-              <ShoppingCart size={15} className="text-[#2d6a4f] dark:text-green-400" />
-              Shopping list
+              <ChefHat size={15} className="text-[#2d6a4f] dark:text-green-400" />
+              Recipe
             </h2>
             {ingredients.length > 0 ? (
               <div className="space-y-4">

@@ -60,9 +60,10 @@ export function RecipesPage({
     })
   }
 
-  // Merges the selected recipes (needs at least two) into a new grocery list.
+  // Merges the selected recipes into a new grocery list. One is enough — the backend accepts a
+  // single recipe, and turning one recipe into a shopping list is the app's main promise.
   const handleMerge = async () => {
-    if (selected.size < 2 || merging) return
+    if (selected.size === 0 || merging) return
     setMerging(true)
     setMergeResult(null)
     const ok = await onMerge([...selected])
@@ -219,12 +220,12 @@ export function RecipesPage({
         <div className="mb-4 flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-white/80 dark:bg-gray-800/70 backdrop-blur-xl border border-gray-200/60 dark:border-gray-700/40">
           <p className="text-sm text-gray-600 dark:text-gray-400">
             {selected.size === 0
-              ? 'Select recipes to merge into a grocery list'
+              ? 'Select one or more recipes to merge into a grocery list'
               : `${selected.size} selected`}
           </p>
           <button
             onClick={handleMerge}
-            disabled={selected.size < 2 || merging}
+            disabled={selected.size === 0 || merging}
             className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold text-white bg-gradient-to-r from-[#1b5e38] to-[#2d6a4f] shadow-lg shadow-green-900/25 hover:shadow-green-900/35 transition-shadow disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
           >
             {merging
