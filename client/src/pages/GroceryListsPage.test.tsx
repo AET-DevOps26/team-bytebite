@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, type Mock } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { GroceryListView } from './GroceryListView'
+import { GroceryListsPage } from './GroceryListsPage'
 import type { GroceryListSummary, GroceryItemDetail } from '../types'
 
 const list: GroceryListSummary = {
@@ -13,7 +13,7 @@ const items: GroceryItemDetail[] = [
   { itemId: 'i2', name: 'Eggs', quantity: 'N/A', unit: '', category: 'DAIRY', purchased: false },
 ]
 
-function renderView(overrides: Partial<React.ComponentProps<typeof GroceryListView>> = {}) {
+function renderView(overrides: Partial<React.ComponentProps<typeof GroceryListsPage>> = {}) {
   const props = {
     lists: [list],
     status: 'ready' as const,
@@ -25,11 +25,11 @@ function renderView(overrides: Partial<React.ComponentProps<typeof GroceryListVi
     fetchItems: vi.fn().mockResolvedValue(items),
     ...overrides,
   }
-  render(<GroceryListView {...props} />)
+  render(<GroceryListsPage {...props} />)
   return props
 }
 
-describe('GroceryListView load states', () => {
+describe('GroceryListsPage load states', () => {
   it('shows a spinner while loading', () => {
     renderView({ status: 'loading' })
     expect(screen.getByText(/loading your grocery lists/i)).toBeInTheDocument()
@@ -54,7 +54,7 @@ describe('GroceryListView load states', () => {
   })
 })
 
-describe('GroceryListView item loading', () => {
+describe('GroceryListsPage item loading', () => {
   it('lazily fetches items when a card is expanded', async () => {
     const user = userEvent.setup()
     const { fetchItems } = renderView()
@@ -80,7 +80,7 @@ describe('GroceryListView item loading', () => {
   })
 })
 
-describe('GroceryListView optimistic toggle', () => {
+describe('GroceryListsPage optimistic toggle', () => {
   it('marks an item purchased immediately and persists it', async () => {
     const user = userEvent.setup()
     const { onToggleItem } = renderView()
@@ -111,7 +111,7 @@ describe('GroceryListView optimistic toggle', () => {
   })
 })
 
-describe('GroceryListView actions', () => {
+describe('GroceryListsPage actions', () => {
   it('deletes a list via the delete control', async () => {
     const user = userEvent.setup()
     const { onDeleteList } = renderView()

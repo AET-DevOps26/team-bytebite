@@ -29,7 +29,7 @@ __all__ = [
     "parse_json_content",
 ]
 
-NO_LLM_NOTE = "No LLM is currently available — showing a canned example response."
+NO_LLM_NOTE = "No LLM is currently available, showing a canned example response."
 
 # Shown when no LLM provider is configured/reachable, so the UI always has something to display.
 CANNED_INGREDIENTS = [

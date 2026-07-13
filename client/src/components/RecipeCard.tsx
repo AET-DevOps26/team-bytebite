@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChefHat, ShoppingCart, ArrowRight, Loader2, AlertTriangle } from 'lucide-react'
+import { ChefHat, ArrowRight, Loader2, AlertTriangle } from 'lucide-react'
 import { AlertBanner } from './AlertBanner'
+import { useApi } from '../contexts/authContext'
 import type { Ingredient, GroceryList, LlmProvider } from '../types'
 
 type Status = 'idle' | 'loading' | 'success' | 'error'
@@ -35,13 +36,15 @@ const PLACEHOLDERS = [
 ]
 
 interface RecipeCardProps {
-  token: string
   llmProvider: LlmProvider
   onLlmProviderChange: (provider: LlmProvider) => void
   onListGenerated?: (list: GroceryList) => Promise<boolean>
 }
 
-export function RecipeCard({ token, llmProvider, onLlmProviderChange, onListGenerated }: RecipeCardProps) {
+type GeneratedRecipe = { dish: string; ingredients: Ingredient[]; note?: string | null }
+
+export function RecipeCard({ llmProvider, onLlmProviderChange, onListGenerated }: RecipeCardProps) {
+  const api = useApi()
   const [input, setInput] = useState('')
   const [validationError, setValidationError] = useState('')
   const [status, setStatus] = useState<Status>('idle')
@@ -53,13 +56,10 @@ export function RecipeCard({ token, llmProvider, onLlmProviderChange, onListGene
   const [note, setNote] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/recipes/providers', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(response => (response.ok ? response.json() : { openaiAvailable: false }))
-      .then((data: { openaiAvailable: boolean }) => setOpenaiAvailable(data.openaiAvailable))
+    api.get<{ openaiAvailable: boolean }>('/recipes/providers')
+      .then(data => setOpenaiAvailable(data.openaiAvailable))
       .catch(() => setOpenaiAvailable(false))
-  }, [token])
+  }, [api])
 
   useEffect(() => {
     if (!openaiAvailable && llmProvider === 'openai') onLlmProviderChange('logos')
@@ -95,16 +95,11 @@ export function RecipeCard({ token, llmProvider, onLlmProviderChange, onListGene
     setSavedToRecipes(false)
     setNote(null)
     try {
-      const response = await fetch('/api/recipes/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ dish: trimmed, dietaryRestrictions, llmProvider }),
+      const data = await api.post<GeneratedRecipe>('/recipes/generate', {
+        dish: trimmed,
+        dietaryRestrictions,
+        llmProvider,
       })
-      if (!response.ok) throw new Error('Request failed')
-      const data = await response.json() as { dish: string; ingredients: Ingredient[]; note?: string | null }
       setIngredients(data.ingredients)
       setNote(data.note ?? null)
       setStatus('success')
@@ -277,8 +272,8 @@ export function RecipeCard({ token, llmProvider, onLlmProviderChange, onListGene
             </>
           ) : (
             <>
-              <ShoppingCart size={16} />
-              Generate shopping list
+              <ChefHat size={16} />
+              Generate recipe
               <ArrowRight size={15} />
             </>
           )}
@@ -304,14 +299,14 @@ export function RecipeCard({ token, llmProvider, onLlmProviderChange, onListGene
               <div className="mb-4">
                 <AlertBanner
                   type="success"
-                  message="Recipe saved — find it on your Recipes page to merge into a grocery list."
+                  message="Recipe saved, find it on your Recipes page to merge into a grocery list."
                   visible={savedToRecipes}
                 />
               </div>
             )}
             <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-              <ShoppingCart size={15} className="text-[#2d6a4f] dark:text-green-400" />
-              Shopping list
+              <ChefHat size={15} className="text-[#2d6a4f] dark:text-green-400" />
+              Recipe
             </h2>
             {ingredients.length > 0 ? (
               <div className="space-y-4">

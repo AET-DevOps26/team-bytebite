@@ -5,17 +5,17 @@ const features: { icon: LucideIcon; title: string; desc: string }[] = [
   {
     icon: Brain,
     title: 'Smart parsing',
-    desc: 'We understand ingredients, quantities, and units automatically.',
+    desc: 'Ingredients, quantities, and units are understood automatically.',
   },
   {
     icon: LayoutList,
     title: 'Organized lists',
-    desc: 'Grouped by store sections for faster, stress-free shopping.',
+    desc: 'Grouped by store sections for faster shopping.',
   },
   {
     icon: Leaf,
-    title: 'Reduce waste',
-    desc: 'Buy only what you need — nothing more, nothing less.',
+    title: 'Diet-aware',
+    desc: 'Automatically substitutes ingredients that clash with your dietary restrictions.',
   },
 ]
 

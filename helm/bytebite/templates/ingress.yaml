@@ -43,4 +43,28 @@ spec:
                 name: api-gateway-service
                 port:
                   number: {{ .Values.apiGateway.service.port }}
+          # Swagger UI lives on the gateway, not under /api. Prefix matching splits on "/",
+          # so /swagger-ui does NOT match /swagger-ui.html — both paths are needed, plus
+          # /v3/api-docs for the specs the UI loads.
+          - path: /swagger-ui.html
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway-service
+                port:
+                  number: {{ .Values.apiGateway.service.port }}
+          - path: /swagger-ui
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway-service
+                port:
+                  number: {{ .Values.apiGateway.service.port }}
+          - path: /v3/api-docs
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway-service
+                port:
+                  number: {{ .Values.apiGateway.service.port }}
 {{- end }}

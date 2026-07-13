@@ -23,10 +23,26 @@ export function parseQuantity(quantity: string): number | null {
   return Number.isFinite(n) ? n : null
 }
 
+// An ingredient that clashes with the user's diet is stored as its alternative — "milk" on a vegan
+// recipe is saved as "oat milk". The swap happens here, at the one boundary every save funnels
+// through, so what lands in the database is already the thing the user should buy and nothing
+// downstream (the lists, the merge, the shop) has to know about diets at all.
+//
+// The flags only ever arrive on a freshly generated recipe; a row with no alternative (the model
+// found none) or one typed by hand in the editor is saved exactly as written.
+function resolveName(item: EditableItem): string {
+  return item.restricted && item.alternative ? item.alternative : item.name
+}
+
 // Maps a form row to the API item payload. Recipes omit `purchased`; grocery lists send the
 // row's current flag (undefined → false for newly added items) so surviving items stay picked up.
 export function toRecipeItemPayload(item: EditableItem) {
-  return { name: item.name, quantity: parseQuantity(item.quantity), unit: item.unit, category: item.category }
+  return {
+    name: resolveName(item),
+    quantity: parseQuantity(item.quantity),
+    unit: item.unit,
+    category: item.category,
+  }
 }
 
 export function toGroceryItemPayload(item: EditableItem) {

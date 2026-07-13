@@ -1,8 +1,18 @@
+// The authenticated user and the login/register/session payload that carries them. The server
+// re-issues the JWT whenever name/email change (it embeds them), so the two always travel together.
+export type AuthUser = { userId: string; name: string; email: string; createdAt: string }
+export type AuthPayload = { token: string; user: AuthUser }
+
+// Shared by every view that loads a collection from the API.
+export type LoadStatus = 'loading' | 'ready' | 'error'
+
 export type LlmProvider = 'logos' | 'openai' | 'local'
 export type Ingredient = { name: string; quantity: string; unit: string; category: string; checked?: boolean; restricted?: boolean; alternative?: string | null }
 export type GroceryList = { id: string; dish: string; createdAt: string; ingredients: Ingredient[] }
 
-// Detail shape returned by grocery-service POST /api/recipes and GET /api/recipes/{id}
+// Detail shape returned by grocery-service POST /api/recipes and GET /api/recipes/{id}.
+// There are no dietary fields here: a restricted ingredient is swapped for its alternative before
+// it is saved, so what comes back is already the ingredient the user should buy.
 export type ApiRecipe = {
   recipeId: string
   name: string
@@ -43,4 +53,16 @@ export type GroceryItemDetail = { itemId: string; name: string; quantity: string
 // A form row shared by the create/edit modal for both recipes and grocery lists. Quantity is a
 // display string ('' or 'N/A' = unspecified). `purchased` is carried through untouched for grocery
 // lists (so surviving items keep their checkbox on save) and left undefined for recipes.
-export type EditableItem = { name: string; quantity: string; unit: string; category: string; purchased?: boolean }
+//
+// `restricted`/`alternative` only ever arrive on a freshly generated recipe, straight from gen-ai.
+// They are not stored: the save mapper uses them to swap the ingredient for its alternative, and
+// then they are done. Items read back from the API never carry them.
+export type EditableItem = {
+  name: string
+  quantity: string
+  unit: string
+  category: string
+  purchased?: boolean
+  restricted?: boolean
+  alternative?: string | null
+}

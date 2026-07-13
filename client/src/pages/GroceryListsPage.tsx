@@ -4,10 +4,9 @@ import {
   ShoppingCart, ChevronDown, ShoppingBag, Plus, Pencil,
   Check, Copy, Trash2, CircleCheckBig, X, Loader2, AlertTriangle,
 } from 'lucide-react'
-import type { GroceryListSummary, GroceryItemDetail, EditableItem } from '../types'
-import { ItemListForm } from './ItemListForm'
+import type { GroceryListSummary, GroceryItemDetail, EditableItem, LoadStatus } from '../types'
+import { ItemListForm } from '../components/ItemListForm'
 
-type LoadStatus = 'loading' | 'ready' | 'error'
 type ItemState = { status: LoadStatus; items: GroceryItemDetail[] }
 
 // The modal is either creating a new list or editing an existing one (seeded with its items).
@@ -15,7 +14,7 @@ type FormMode =
   | { kind: 'create' }
   | { kind: 'edit'; id: string; name: string; items: EditableItem[] }
 
-interface GroceryListViewProps {
+interface GroceryListsPageProps {
   lists: GroceryListSummary[]
   status: LoadStatus
   onRetry: () => void
@@ -46,9 +45,9 @@ function toEditable(item: GroceryItemDetail): EditableItem {
   }
 }
 
-export function GroceryListView({
+export function GroceryListsPage({
   lists, status, onRetry, onToggleItem, onDeleteList, onCreateList, onUpdateList, fetchItems,
-}: GroceryListViewProps) {
+}: GroceryListsPageProps) {
   const [openId, setOpenId] = useState<string | null>(null)
   const [copyState, setCopyState] = useState<{ id: string; ok: boolean } | null>(null)
   const [itemsById, setItemsById] = useState<Record<string, ItemState>>({})

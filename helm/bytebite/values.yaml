@@ -65,6 +65,7 @@ userDb:
     pullPolicy: Always
   name: bytebite_user
   user: bytebite_user
+  # Empty falls back to the development password in secret.yaml. Override for real deploys.
   password: ""
 
 groceryDb:
@@ -74,6 +75,7 @@ groceryDb:
     pullPolicy: Always
   name: bytebite_grocery
   user: bytebite_grocery
+  # Empty falls back to the development password in secret.yaml. Override for real deploys.
   password: ""
 
 # Shared JWT signing/verification secret for user-service (signs) and
@@ -130,8 +132,9 @@ monitoring:
       targetPort: 3000
     replicaCount: 1
     adminUser: admin
-    # Fallback only. Real deploys override this via the GRAFANA_ADMIN_PASSWORD
-    adminPassword: admin
+    # Development fallback, matching compose.yaml so every local environment uses the
+    # same login. Real deploys override this via the GRAFANA_ADMIN_PASSWORD secret.
+    adminPassword: bytebite
     ingress:
       enabled: true
       path: /grafana
