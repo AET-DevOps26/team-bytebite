@@ -30,6 +30,9 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Check formatting with Spotless
+        run: cd server/${{ matrix.service }} && ./mvnw -B spotless:check
+
       - name: Run tests with Maven
         run: cd server/${{ matrix.service }} && ./mvnw -B test
 
@@ -50,6 +53,9 @@ jobs:
       - name: Install dependencies
         run: cd client && npm ci
 
+      - name: Lint with ESLint
+        run: cd client && npm run lint
+
       - name: Run tests
         run: cd client && npm test
 
@@ -69,6 +75,9 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r gen-ai/requirements-dev.txt
+
+      - name: Lint with Ruff
+        run: ruff check gen-ai
 
       - name: Run tests with pytest
         run: pytest gen-ai

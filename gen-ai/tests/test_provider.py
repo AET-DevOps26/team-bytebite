@@ -3,7 +3,8 @@ from unittest.mock import patch
 import pytest
 from fastapi import HTTPException
 
-from main import LOGOS_BASE_URL, get_client, normalize_provider
+from config import LOGOS_BASE_URL
+from llm import get_client, normalize_provider
 
 
 @pytest.mark.parametrize(
@@ -36,7 +37,7 @@ def test_logos_missing_key_raises_500(monkeypatch):
 
 
 def test_openai_constructs_client_with_key():
-    with patch("main.OpenAI") as mock_openai_cls:
+    with patch("llm.OpenAI") as mock_openai_cls:
         get_client("openai")
     _, kwargs = mock_openai_cls.call_args
     assert kwargs["api_key"] == "test-openai-key"
@@ -44,7 +45,7 @@ def test_openai_constructs_client_with_key():
 
 
 def test_logos_constructs_client_with_base_url():
-    with patch("main.OpenAI") as mock_openai_cls:
+    with patch("llm.OpenAI") as mock_openai_cls:
         get_client("logos")
     _, kwargs = mock_openai_cls.call_args
     assert kwargs["api_key"] == "test-logos-key"

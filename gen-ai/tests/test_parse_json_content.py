@@ -1,6 +1,6 @@
 import pytest
 
-from main import parse_json_content
+from llm import parse_json_content
 
 
 def test_valid_json_parsed():

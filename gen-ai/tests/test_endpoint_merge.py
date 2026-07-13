@@ -1,7 +1,7 @@
 import json
 
-from main import LOGOS_BASE_URL, LOGOS_MODEL, NO_LLM_NOTE
-
+from config import LOGOS_BASE_URL, LOGOS_MODEL
+from llm import NO_LLM_NOTE
 from tests.conftest import _fake_response
 
 

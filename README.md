@@ -238,6 +238,22 @@ manual run does not rerun the tests.
 
 ---
 
+### Linting / Static Analysis
+
+Every service is linted in CI (`Test, Build and Push Images`) as a **blocking gate** —
+a lint failure fails the build and prevents images from being pushed or deployed.
+
+| Service | Tool | Run locally |
+|---------|------|-------------|
+| `client` | ESLint | `cd client && npm run lint` |
+| `gen-ai` | [Ruff](https://docs.astral.sh/ruff/) | `cd gen-ai && ruff check .` |
+| `api-gateway`, `user-service`, `grocery-service` | [Spotless](https://github.com/diffplug/spotless) (google-java-format) | `cd server/<service> && ./mvnw spotless:check` |
+
+For the Java services, auto-format any violations with `./mvnw spotless:apply`.
+Ruff config lives in `gen-ai/pyproject.toml`; ESLint config in `client/eslint.config.js`.
+
+---
+
 ### Docker
 
 Requires Docker Desktop running.

@@ -135,7 +135,7 @@ pytest                    # from gen-ai/
 pytest tests/test_endpoint_merge.py     # a single file
 ```
 
-[`pytest.ini`](pytest.ini) enforces **85% line coverage of `main.py`**; the run fails below that.
+[`pytest.ini`](pytest.ini) enforces **85% line coverage** across all service modules; the run fails below that.
 
 Coverage spans the two endpoints and their fallback paths
 ([`test_endpoint_parse.py`](tests/test_endpoint_parse.py),

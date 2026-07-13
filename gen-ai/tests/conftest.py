@@ -27,7 +27,7 @@ def _fake_response(content: str):
 
 @pytest.fixture
 def mock_openai_client():
-    with patch("main.OpenAI") as mock_openai_cls:
+    with patch("llm.OpenAI") as mock_openai_cls:
         mock_instance = mock_openai_cls.return_value
         mock_instance.chat.completions.create = MagicMock(
             return_value=_fake_response(json.dumps({"ingredients": []}))

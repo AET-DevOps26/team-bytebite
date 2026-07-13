@@ -7,103 +7,125 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class AuthService {
-    private final UserRepository userRepository;
-    private final JwtTokenService jwtTokenService;
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder(12);
+  private final UserRepository userRepository;
+  private final JwtTokenService jwtTokenService;
+  private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder(12);
 
-    public AuthService(UserRepository userRepository, JwtTokenService jwtTokenService) {
-        this.userRepository = userRepository;
-        this.jwtTokenService = jwtTokenService;
+  public AuthService(UserRepository userRepository, JwtTokenService jwtTokenService) {
+    this.userRepository = userRepository;
+    this.jwtTokenService = jwtTokenService;
+  }
+
+  public AuthResponse register(RegisterRequest request) {
+    String name = normalizeRequired(request.name(), "Name");
+    String email = normalizeEmail(request.email());
+    String password = requirePassword(request.password());
+
+    userRepository
+        .findByEmail(email)
+        .ifPresent(
+            user -> {
+              throw new ResponseStatusException(
+                  HttpStatus.CONFLICT, "Email is already registered.");
+            });
+
+    UserRecord user = userRepository.create(name, email, passwordEncoder.encode(password));
+    return responseFor(user);
+  }
+
+  public AuthResponse login(LoginRequest request) {
+    String email = normalizeEmail(request.email());
+    String password = normalizeRequired(request.password(), "Password");
+    UserRecord user =
+        userRepository
+            .findByEmail(email)
+            .orElseThrow(
+                () ->
+                    new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED, "Invalid email or password."));
+
+    if (!passwordEncoder.matches(password, user.passwordHash())) {
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password.");
     }
 
-    public AuthResponse register(RegisterRequest request) {
-        String name = normalizeRequired(request.name(), "Name");
-        String email = normalizeEmail(request.email());
-        String password = requirePassword(request.password());
+    return responseFor(user);
+  }
 
-        userRepository.findByEmail(email).ifPresent(user -> {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email is already registered.");
-        });
+  public AuthResponse currentUser(String authorizationHeader) {
+    JwtTokenService.JwtUser jwtUser = jwtTokenService.verify(authorizationHeader);
+    UserRecord user =
+        userRepository
+            .findById(jwtUser.userId())
+            .orElseThrow(
+                () ->
+                    new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User no longer exists."));
+    return responseFor(user);
+  }
 
-        UserRecord user = userRepository.create(name, email, passwordEncoder.encode(password));
-        return responseFor(user);
+  public AuthResponse updateProfile(String authorizationHeader, UpdateProfileRequest request) {
+    JwtTokenService.JwtUser jwtUser = jwtTokenService.verify(authorizationHeader);
+    String name = normalizeRequired(request.name(), "Name");
+    String email = normalizeEmail(request.email());
+
+    userRepository
+        .findByEmail(email)
+        .ifPresent(
+            existing -> {
+              if (!existing.userId().equals(jwtUser.userId())) {
+                throw new ResponseStatusException(
+                    HttpStatus.CONFLICT, "Email is already registered.");
+              }
+            });
+
+    UserRecord user = userRepository.updateProfile(jwtUser.userId(), name, email);
+    return responseFor(user);
+  }
+
+  public void updatePassword(String authorizationHeader, UpdatePasswordRequest request) {
+    JwtTokenService.JwtUser jwtUser = jwtTokenService.verify(authorizationHeader);
+    String currentPassword = normalizeRequired(request.currentPassword(), "Current password");
+    String newPassword = requirePassword(request.newPassword());
+
+    UserRecord user =
+        userRepository
+            .findById(jwtUser.userId())
+            .orElseThrow(
+                () ->
+                    new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User no longer exists."));
+
+    if (!passwordEncoder.matches(currentPassword, user.passwordHash())) {
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Current password is incorrect.");
     }
 
-    public AuthResponse login(LoginRequest request) {
-        String email = normalizeEmail(request.email());
-        String password = normalizeRequired(request.password(), "Password");
-        UserRecord user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password."));
+    userRepository.updatePassword(jwtUser.userId(), passwordEncoder.encode(newPassword));
+  }
 
-        if (!passwordEncoder.matches(password, user.passwordHash())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password.");
-        }
+  private AuthResponse responseFor(UserRecord user) {
+    UserResponse userResponse = UserResponse.from(user);
+    return new AuthResponse(jwtTokenService.createToken(userResponse), userResponse);
+  }
 
-        return responseFor(user);
+  private String normalizeEmail(String value) {
+    String email = normalizeRequired(value, "Email").toLowerCase();
+    if (!email.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email is not valid.");
     }
+    return email;
+  }
 
-    public AuthResponse currentUser(String authorizationHeader) {
-        JwtTokenService.JwtUser jwtUser = jwtTokenService.verify(authorizationHeader);
-        UserRecord user = userRepository.findById(jwtUser.userId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User no longer exists."));
-        return responseFor(user);
+  private String requirePassword(String value) {
+    String password = normalizeRequired(value, "Password");
+    if (password.length() < 8) {
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "Password must be at least 8 characters.");
     }
+    return password;
+  }
 
-    public AuthResponse updateProfile(String authorizationHeader, UpdateProfileRequest request) {
-        JwtTokenService.JwtUser jwtUser = jwtTokenService.verify(authorizationHeader);
-        String name = normalizeRequired(request.name(), "Name");
-        String email = normalizeEmail(request.email());
-
-        userRepository.findByEmail(email).ifPresent(existing -> {
-            if (!existing.userId().equals(jwtUser.userId())) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Email is already registered.");
-            }
-        });
-
-        UserRecord user = userRepository.updateProfile(jwtUser.userId(), name, email);
-        return responseFor(user);
+  private String normalizeRequired(String value, String label) {
+    if (value == null || value.trim().isEmpty()) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, label + " is required.");
     }
-
-    public void updatePassword(String authorizationHeader, UpdatePasswordRequest request) {
-        JwtTokenService.JwtUser jwtUser = jwtTokenService.verify(authorizationHeader);
-        String currentPassword = normalizeRequired(request.currentPassword(), "Current password");
-        String newPassword = requirePassword(request.newPassword());
-
-        UserRecord user = userRepository.findById(jwtUser.userId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User no longer exists."));
-
-        if (!passwordEncoder.matches(currentPassword, user.passwordHash())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Current password is incorrect.");
-        }
-
-        userRepository.updatePassword(jwtUser.userId(), passwordEncoder.encode(newPassword));
-    }
-
-    private AuthResponse responseFor(UserRecord user) {
-        UserResponse userResponse = UserResponse.from(user);
-        return new AuthResponse(jwtTokenService.createToken(userResponse), userResponse);
-    }
-
-    private String normalizeEmail(String value) {
-        String email = normalizeRequired(value, "Email").toLowerCase();
-        if (!email.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email is not valid.");
-        }
-        return email;
-    }
-
-    private String requirePassword(String value) {
-        String password = normalizeRequired(value, "Password");
-        if (password.length() < 8) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must be at least 8 characters.");
-        }
-        return password;
-    }
-
-    private String normalizeRequired(String value, String label) {
-        if (value == null || value.trim().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, label + " is required.");
-        }
-        return value.trim();
-    }
+    return value.trim();
+  }
 }
