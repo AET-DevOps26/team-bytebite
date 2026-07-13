@@ -1,10 +1,10 @@
-# Terraform — ByteBite Azure VM
+# Terraform, ByteBite Azure VM
 
 Provisions the Azure VM (and its networking) that
 [`.github/workflows/deploy-azure.yml`](../../.github/workflows/deploy-azure.yml) then configures with Ansible.
 Before this, the VM was created by hand; now it is reproducible.
 
-This is **infrastructure only** — it provisions a bare, reachable VM. Configuration (installing
+This is **infrastructure only**, it provisions a bare, reachable VM. Configuration (installing
 Docker, deploying the app) is handled by **Ansible** in the next step; Terraform only does enough to
 let Ansible connect. cloud-init is therefore minimal (it just ensures Python 3 is present).
 
@@ -12,7 +12,7 @@ let Ansible connect. cloud-init is therefore minimal (it just ensures Python 3 i
 
 - Resource group, virtual network + subnet
 - Network security group with inbound rules for `22` (SSH), `8081` (client), `8080` (api-gateway),
-  `9090` (Prometheus), and `3000` (Grafana) — matching the public ports `compose.yaml` publishes
+  `9090` (Prometheus), and `3000` (Grafana), matching the public ports `compose.yaml` publishes
   (gen-ai and the DBs are internal)
 - Static public IP, network interface
 - Ubuntu 22.04 LTS VM (`Standard_D2_v3` by default)
@@ -58,7 +58,7 @@ when the infra is unchanged it's a no-op and only the Ansible deploy does work. 
 image build of `main`, and on demand (`workflow_dispatch`).
 
 Because both steps run on the same runner, Terraform's generated inventory + SSH key flow straight to
-Ansible — nothing is copied into repo settings. Just **two required GitHub secrets**, plus one
+Ansible, nothing is copied into repo settings. Just **two required GitHub secrets**, plus one
 optional:
 
 | Secret | Required | What |
@@ -67,7 +67,7 @@ optional:
 | `LOGOS_KEY` | yes | Passed through to the `gen-ai` service as the default LLM provider key |
 | `OPENAI_API_KEY` | no | Key for the frontend's OpenAI provider switch |
 
-GHCR authentication uses the workflow's built-in `GITHUB_TOKEN` — no secret to create.
+GHCR authentication uses the workflow's built-in `GITHUB_TOKEN`, no secret to create.
 
 Create the service principal once (Contributor lets it manage resources **and** read the state
 storage account's keys):
@@ -97,7 +97,7 @@ so the Ansible step can target the VM directly from `infra/ansible/`, e.g.:
 ansible -i inventory.ini bytebite -m ping
 ```
 
-If you supplied your own `ssh_public_key`, no key file is written — add
+If you supplied your own `ssh_public_key`, no key file is written, add
 `ansible_ssh_private_key_file` to your inventory/config pointing at your own key.
 
 ## Notes

@@ -132,8 +132,9 @@ monitoring:
       targetPort: 3000
     replicaCount: 1
     adminUser: admin
-    # Fallback only. Real deploys override this via the GRAFANA_ADMIN_PASSWORD
-    adminPassword: admin
+    # Development fallback, matching compose.yaml so every local environment uses the
+    # same login. Real deploys override this via the GRAFANA_ADMIN_PASSWORD secret.
+    adminPassword: bytebite
     ingress:
       enabled: true
       path: /grafana

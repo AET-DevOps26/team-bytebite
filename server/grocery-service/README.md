@@ -12,7 +12,7 @@ writes the grocery database, and calls `gen-ai` when a recipe needs its ingredie
 ## Run
 
 ```bash
-./mvnw spring-boot:run    # macOS / Linux — starts on http://localhost:8082
+./mvnw spring-boot:run    # macOS / Linux, starts on http://localhost:8082
 mvnw.cmd spring-boot:run  # Windows
 ./mvnw test
 ```
@@ -28,28 +28,32 @@ mvnw.cmd spring-boot:run  # Windows
 | `SERVER_PORT` | `8082` | Overridden to `8080` in containers |
 
 `application.properties` also honors `GROCERY_DB_URL`, `GROCERY_DB_USER`, and `GROCERY_DB_PASSWORD`
-as aliases, but nothing sets them — `compose.yaml` and the Helm chart both use the
+as aliases, but nothing sets them, `compose.yaml` and the Helm chart both use the
 `SPRING_DATASOURCE_*` names above, which take precedence over the properties file. Prefer those.
 
-Hibernate runs with `ddl-auto=none` — the schema is owned by the init scripts in
+Hibernate runs with `ddl-auto=none`, the schema is owned by the init scripts in
 [`databases/grocery-db`](../../databases/grocery-db), not generated from the entities. Schema
 changes belong there.
 
-## API
+## Endpoints
 
 Recipes and grocery lists are exposed under `/api/recipes` and `/api/grocery-list`, plus
 `POST /api/recipes/generate` (generate ingredients for a dish) and `GET /api/recipes/providers`
-(the LLM providers the client may select).
+(the LLM providers the client may select). For the full request and response shapes, use the
+aggregated Swagger UI at http://localhost:8080/swagger-ui.html while the gateway is running —
+it is generated from the code, so it cannot drift from it.
 
-For the full request and response shapes, use the aggregated Swagger UI at
-http://localhost:8080/swagger-ui.html while the gateway is running. It is generated from the
-code, so it cannot drift from it.
+Operational endpoints:
+
+| Path | Purpose |
+|---|---|
+| `/health` | Health check |
+| `/actuator/health` | Health check (actuator) |
+| `/actuator/prometheus` | Prometheus metrics |
 
 In production the service is reached through the api-gateway, which strips the `Authorization`
 header and replaces it with trusted `X-User-Id` and `X-User-Email` headers. Requests that arrive
 without those headers were not authenticated.
-
-Operational endpoints: `/health`, `/actuator/health`, `/actuator/prometheus`.
 
 ## Tests
 

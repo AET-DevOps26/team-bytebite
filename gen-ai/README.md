@@ -46,7 +46,7 @@ uvicorn main:app --reload
 ## LLM providers
 
 Requests select a provider via `llm_provider`. Anything unrecognized falls back to `logos`, and
-selecting `openai` without `OPENAI_API_KEY` set also falls back to `logos` — the service never
+selecting `openai` without `OPENAI_API_KEY` set also falls back to `logos`, the service never
 fails a request just because a provider is unavailable.
 
 | Provider | Model | Requires |
@@ -58,7 +58,7 @@ fails a request just because a provider is unavailable.
 If the selected provider errors, times out, or returns unparseable JSON, the service degrades
 instead of failing: `/api/ai/parse` returns a canned example list, and `/api/ai/merge` returns the
 submitted ingredients unmerged. Both set a `note` field explaining why. The UI therefore always has
-something to display — this is deliberate, and keeps a missing API key from breaking a demo.
+something to display, this is deliberate, and keeps a missing API key from breaking a demo.
 
 ### Local LLM (LM Studio)
 
@@ -71,20 +71,26 @@ To use a model running locally instead of a hosted provider:
    LM_STUDIO_BASE_URL=http://localhost:1234/v1
    LM_STUDIO_MODEL=<model-identifier-from-lm-studio>
    ```
-   Both are optional — they default to `http://localhost:1234/v1` and `local-model` respectively — but `LM_STUDIO_MODEL` must match the identifier LM Studio reports or requests will 404 (which gen-ai handles gracefully by falling back to a canned example response).
+   Both are optional, defaulting to `http://localhost:1234/v1` and `local-model` respectively, but `LM_STUDIO_MODEL` must match the identifier LM Studio reports or requests will 404 (which gen-ai handles gracefully by falling back to a canned example response).
 4. Select `"local"` as the `llm_provider` in requests (or the "Local" option in the client UI).
 
-If gen-ai runs via `docker compose up` instead of `uvicorn` directly, point `LM_STUDIO_BASE_URL` at `http://host.docker.internal:1234/v1` instead of `localhost` so the container can reach LM Studio on the host — `compose.yaml` already defaults to this for you.
+If gen-ai runs via `docker compose up` instead of `uvicorn` directly, point `LM_STUDIO_BASE_URL` at `http://host.docker.internal:1234/v1` instead of `localhost` so the container can reach LM Studio on the host, `compose.yaml` already defaults to this for you.
 
 ## Endpoints
 
-| Method | Path       | Description                              |
-|--------|------------|------------------------------------------|
-| GET    | /health    | Health check; reports whether OpenAI is configured |
-| GET    | /metrics   | Prometheus metrics (scraped by the monitoring stack) |
-| POST   | /api/ai/parse | Generate or extract an ingredient list for a dish |
-| POST   | /api/ai/merge | Merge several ingredient lists into one |
-| GET    | /docs      | Swagger UI (also aggregated at the gateway) |
+The service API is `POST /api/ai/parse` and `POST /api/ai/merge`. The client never
+calls them directly, `grocery-service` does. For the full request and response shapes, use the
+Swagger UI at http://localhost:8000/docs, or the gateway's aggregated UI at
+http://localhost:8080/swagger-ui.html. Both are generated from the code, so they cannot drift
+from it.
+
+Operational endpoints:
+
+| Path | Purpose |
+|---|---|
+| `/health` | Health check; reports whether OpenAI is configured |
+| `/metrics` | Prometheus metrics (scraped by the monitoring stack) |
+| `/docs` | Swagger UI |
 
 ### POST /api/ai/parse
 
@@ -120,7 +126,7 @@ apart.
 
 ## Tests
 
-Tests use `pytest` against FastAPI's `TestClient`, with the LLM client stubbed — no API key,
+Tests use `pytest` against FastAPI's `TestClient`, with the LLM client stubbed, no API key,
 network, or running server needed.
 
 ```bash

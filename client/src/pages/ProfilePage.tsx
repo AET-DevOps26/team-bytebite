@@ -59,7 +59,7 @@ export function ProfilePage() {
       await api.put('/users/me/password', { currentPassword, newPassword }, { signOutOn401: false })
       // Stay in the saving state and pause briefly so the confirmation is readable before the
       // sign-out drops us back to the login screen.
-      setPasswordSuccess('Password changed — please sign in again.')
+      setPasswordSuccess('Password changed, please sign in again.')
       setTimeout(signOut, 1200)
     } catch (error) {
       setSavingPassword(false)

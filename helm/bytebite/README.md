@@ -41,22 +41,22 @@ helm uninstall bytebite --namespace team-bytebite
 
 ### Secrets
 
-Every one of these has a development fallback, so the chart installs without any `--set` — useful
+Every one of these has a development fallback, so the chart installs without any `--set`, useful
 for local clusters and demos. **Override them for a real deploy.** CI passes them from GitHub
 secrets in [`deploy-k8s.yml`](../../.github/workflows/deploy-k8s.yml).
 
 | Parameter | Description | Default |
 |---|---|---|
-| `genai.logosKey` | Logos API key for the default gen-ai provider | `""` — gen-ai serves canned example data |
-| `genai.openaiApiKey` | OpenAI API key for the selectable OpenAI provider | `""` — OpenAI option unavailable |
-| `jwt.secret` | Shared signing key — user-service signs, api-gateway verifies. **≥ 32 chars.** | `""` — apps use their built-in dev key |
+| `genai.logosKey` | Logos API key for the default gen-ai provider | `""`, gen-ai serves canned example data |
+| `genai.openaiApiKey` | OpenAI API key for the selectable OpenAI provider | `""`, OpenAI option unavailable |
+| `jwt.secret` | Shared signing key, user-service signs, api-gateway verifies. **≥ 32 chars.** | `""`, apps use their built-in dev key |
 | `userDb.password` | User database password | `bytebite_user_password` |
 | `groceryDb.password` | Grocery database password | `bytebite_grocery_password` |
 
 The database passwords fall back in [`secret.yaml`](templates/secret.yaml) rather than in
 `values.yaml`: the databases mount `emptyDir` and re-initialize on every pod start, and Postgres
 refuses to initialize with an empty password. A `values.yaml` default would not help, because
-`--set userDb.password=""` — what CI produces when a repo secret is missing — would override it.
+`--set userDb.password=""`, what CI produces when a repo secret is missing, would override it.
 
 ### Deployment
 
@@ -83,6 +83,6 @@ Each service also accepts `image.repository`, `image.pullPolicy`, `replicaCount`
 | `monitoring.enabled` | Deploy Prometheus and Grafana | `true` |
 | `monitoring.prometheus.scrapeInterval` | Scrape interval | `15s` |
 | `monitoring.grafana.adminUser` | Grafana admin username | `admin` |
-| `monitoring.grafana.adminPassword` | Grafana admin password — fallback only; CI overrides via the `GRAFANA_ADMIN_PASSWORD` secret | `admin` |
+| `monitoring.grafana.adminPassword` | Grafana admin password. Development fallback, matching `compose.yaml`; CI overrides via the `GRAFANA_ADMIN_PASSWORD` secret | `bytebite` |
 | `monitoring.grafana.ingress.enabled` | Expose Grafana under the main ingress host | `true` |
 | `monitoring.grafana.ingress.path` | Grafana ingress path | `/grafana` |

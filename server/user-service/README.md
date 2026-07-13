@@ -11,7 +11,7 @@ verifies passwords, and issues the JWTs that the api-gateway later verifies.
 ## Run
 
 ```bash
-./mvnw spring-boot:run    # macOS / Linux — starts on http://localhost:8083
+./mvnw spring-boot:run    # macOS / Linux, starts on http://localhost:8083
 mvnw.cmd spring-boot:run  # Windows
 ./mvnw test
 ```
@@ -28,22 +28,29 @@ mvnw.cmd spring-boot:run  # Windows
 | `SERVER_PORT` | `8083` | Overridden to `8080` in containers |
 
 `JWT_SECRET` must be identical to the one the [api-gateway](../api-gateway/README.md) verifies
-with — this service signs, the gateway verifies. Override the default in every real environment.
+with, this service signs, the gateway verifies. Override the default in every real environment.
 
 The schema and the seeded evaluation account come from
 [`databases/user-db/init.sql`](../../databases/user-db/init.sql).
 
-## API
+## Endpoints
 
 `POST /api/auth/register` and `POST /api/auth/login` are public and return a JWT.
-`GET`/`PATCH /api/users/me` and `PUT /api/users/me/password` operate on the current user, which
-the service reads from the trusted `X-User-Id` / `X-User-Email` headers the gateway injects —
-they are never taken from the request body.
+`GET`/`PATCH /api/users/me` and `PUT /api/users/me/password` operate on the current user. For the
+full request and response shapes, use the aggregated Swagger UI at
+http://localhost:8080/swagger-ui.html while the gateway is running — it is generated from the
+code, so it cannot drift from it.
 
-For the full request and response shapes, use the aggregated Swagger UI at
-http://localhost:8080/swagger-ui.html while the gateway is running.
+Operational endpoints:
 
-Operational endpoints: `/health`, `/actuator/health`, `/actuator/prometheus`.
+| Path | Purpose |
+|---|---|
+| `/health` | Health check |
+| `/actuator/health` | Health check (actuator) |
+| `/actuator/prometheus` | Prometheus metrics |
+
+The current user is read from the trusted `X-User-Id` / `X-User-Email` headers the gateway
+injects — never from the request body.
 
 ## Tests
 

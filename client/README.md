@@ -38,16 +38,16 @@ npx vitest run <path> # run a single file, e.g. src/lib/mappers.test.ts
 
 Tests sit next to the code they exercise (`*.test.ts` / `*.test.tsx`), in three tiers:
 
-- **Unit** — [src/lib/mappers.test.ts](src/lib/mappers.test.ts): the pure API↔view-model
+- **Unit** [src/lib/mappers.test.ts](src/lib/mappers.test.ts): the pure API↔view-model
   converters (quantity `null ↔ "N/A"`, item-payload mapping, derived counts).
-- **Component** — [src/components/](src/components/): `AuthCard`, `ItemListForm` and
+- **Component** [src/components/](src/components/): `AuthCard`, `ItemListForm` and
   `GroceryListView` rendered in isolation, driving real user interactions (form validation,
   add/remove rows, optimistic toggle with rollback, loading/error/empty states).
-- **Integration** — [src/App.integration.test.tsx](src/App.integration.test.tsx): the real `App`
-  with `fetch` mocked at the network boundary, covering core workflows — login bootstrap, session
+- **Integration** [src/App.integration.test.tsx](src/App.integration.test.tsx): the real `App`
+  with `fetch` mocked at the network boundary, covering core workflows, login bootstrap, session
   expiry, merging recipes into a grocery list across views, manual create, optimistic-delete
   rollback, and failed-load retry.
 
-No network or backend is needed — `fetch` is mocked, so the suite is fast and deterministic. It runs
+No network or backend is needed, `fetch` is mocked, so the suite is fast and deterministic. It runs
 automatically in CI (see [`.github/workflows/test-build-push.yml`](../.github/workflows/test-build-push.yml))
 and gates image builds, so a failing test blocks the merge.

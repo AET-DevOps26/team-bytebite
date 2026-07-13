@@ -299,7 +299,7 @@ export function RecipeCard({ llmProvider, onLlmProviderChange, onListGenerated }
               <div className="mb-4">
                 <AlertBanner
                   type="success"
-                  message="Recipe saved — find it on your Recipes page to merge into a grocery list."
+                  message="Recipe saved, find it on your Recipes page to merge into a grocery list."
                   visible={savedToRecipes}
                 />
               </div>
