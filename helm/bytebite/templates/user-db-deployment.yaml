@@ -23,7 +23,7 @@ spec:
           imagePullPolicy: {{ .Values.userDb.image.pullPolicy }}
           resources:
             limits:
-              cpu: "250m"
+              cpu: "200m"
               memory: "256Mi"
             requests:
               cpu: "100m"
