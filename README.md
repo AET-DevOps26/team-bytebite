@@ -25,8 +25,9 @@ Also started by compose: [Prometheus](http://localhost:9090) and
 | **Swagger UI** | https://team-bytebite.stud.k8s.aet.cit.tum.de/swagger-ui.html | — |
 | **Grafana** | https://team-bytebite.stud.k8s.aet.cit.tum.de/grafana | `admin` / `bytebite` |
 
-The app also deploys to an **Azure VM** at `http://<public_ip>:8081`, with Prometheus on `:9090`
-and Grafana on `:3000`. The IP is assigned by Terraform, get it from the GitHub Actions result.
+The app also deploys to an **Azure VM** at `http://<public_ip>:8081`, with the Swagger UI on
+`:8080/swagger-ui.html`, Prometheus on `:9090` and Grafana on `:3000`. The IP is assigned by
+Terraform, get it from the GitHub Actions result.
 
 Both deployments run automatically on every merge to `main`.
 
@@ -183,6 +184,13 @@ http://localhost:8080/swagger-ui.html
 ```
 
 The UI includes the User Service, Grocery Service, and Gen AI Service OpenAPI definitions. The raw specs are available through the gateway at `/v3/api-docs/user-service`, `/v3/api-docs/grocery-service`, and `/v3/api-docs/gen-ai`.
+
+On the deployed environments the same UI lives at:
+
+| Deployment | Swagger UI |
+|---|---|
+| Kubernetes | `https://team-bytebite.stud.k8s.aet.cit.tum.de/swagger-ui.html` |
+| Azure VM | `http://<public_ip>:8080/swagger-ui.html` |
 
 ---
 

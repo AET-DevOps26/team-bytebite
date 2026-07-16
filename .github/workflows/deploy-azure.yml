@@ -120,5 +120,6 @@ jobs:
         if: success()
         run: |
           echo "App: http://${{ steps.tf.outputs.public_ip }}:8081" >> "$GITHUB_STEP_SUMMARY"
+          echo "Swagger UI: http://${{ steps.tf.outputs.public_ip }}:8080/swagger-ui.html" >> "$GITHUB_STEP_SUMMARY"
           echo "Prometheus: http://${{ steps.tf.outputs.public_ip }}:9090" >> "$GITHUB_STEP_SUMMARY"
           echo "Grafana: http://${{ steps.tf.outputs.public_ip }}:3000" >> "$GITHUB_STEP_SUMMARY"
