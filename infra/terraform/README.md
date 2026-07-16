@@ -21,7 +21,7 @@ let Ansible connect. cloud-init is therefore minimal (it just ensures Python 3 i
   `../ansible/` folder (`inventory.ini`, `ssh_key.pem`) on `apply`. Both are gitignored.
 
 State is stored **remotely** in Azure Storage (`azurerm` backend in `versions.tf`:
-`teamstatebytebite` / `tfstate` container), so CI and team members share one locked state.
+`bytebitetim` / `tfstate` container), so CI and team members share one locked state.
 
 ## Prerequisites
 
