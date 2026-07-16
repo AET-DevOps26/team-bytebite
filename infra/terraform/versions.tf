@@ -17,8 +17,8 @@ terraform {
   }
 
   backend "azurerm" {
-    resource_group_name  = "terraform_bitebyte"
-    storage_account_name = "teamstatebytebite"
+    resource_group_name  = "terraform_bytebite"
+    storage_account_name = "bytebitetim"
     container_name       = "tfstate"
     key                  = "terraform.tfstate"
   }

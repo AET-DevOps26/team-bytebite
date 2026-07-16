@@ -19,7 +19,7 @@ spec:
           imagePullPolicy: {{ .Values.apiGateway.image.pullPolicy }}
           resources:
             limits:
-              cpu: "500m"
+              cpu: "300m"
               memory: "512Mi"
             requests:
               cpu: "200m"
@@ -31,6 +31,9 @@ spec:
               value: "http://grocery-service:{{ .Values.groceryService.service.port }}"
             - name: USER_SERVICE_BASE_URL
               value: "http://user-service:{{ .Values.userService.service.port }}"
+            # Only used to proxy gen-ai's OpenAPI spec into the gateway's Swagger UI.
+            - name: GENAI_SERVICE_BASE_URL
+              value: "http://genai-service:{{ .Values.genai.service.port }}"
             {{- if .Values.jwt.secret }}
             # Shared JWT secret (verifies tokens). Must match user-service. Only
             # injected when set; otherwise the app's built-in default applies.
